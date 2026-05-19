@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kayıt Ol — CampusBoard</title>
+  <link rel="icon" type="image/svg+xml" href="assets/campusboard_app_icon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="auth-body">
+
+  <!-- Sol panel -->
+  <div class="auth-panel-left">
+    <div class="auth-brand">
+      <img src="assets/campusboard_app_icon.svg" width="32" height="32" alt="CampusBoard" style="border-radius:8px;" />
+      <img src="assets/CampusBoard_wordmark_caps_black_cap_transparent.svg" height="44" alt="CampusBoard" style="display:block;" />
+    </div>
+
+    <div class="auth-hero">
+      <h2>Kampüs Topluluğunun Bir Parçası Ol</h2>
+      <p>Doğru ilan, doğru zamanda, doğru kişiye ulaşır.</p>
+    </div>
+
+    <div class="auth-features">
+      <div class="auth-feature">
+        <div class="auth-feature-dot"></div>
+        Sınırsız ilan oluştur
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-dot"></div>
+        Verilerini güvende tut — sadece sen görürsün
+      </div>
+      <div class="auth-feature">
+        <div class="auth-feature-dot"></div>
+        İstediğin zaman düzenle veya kapat
+      </div>
+    </div>
+
+    <!-- Floating decoration orbs -->
+    <div class="auth-orb auth-orb-1"></div>
+    <div class="auth-orb auth-orb-2"></div>
+    <div class="auth-orb auth-orb-3"></div>
+  </div>
+
+  <!-- Sağ panel -->
+  <div class="auth-panel-right">
+    <div class="auth-form-wrap">
+      <div class="auth-form-header">
+        <h1>Hesap oluştur</h1>
+        <p>Ücretsiz hesap oluştur, hemen başla.</p>
+      </div>
+
+      <div id="auth-error-banner" class="auth-error-banner" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="#ef4444" stroke-width="1.5"/>
+          <path d="M8 5v3M8 10.5v.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span id="auth-error-text"></span>
+      </div>
+
+      <form id="register-form" novalidate>
+        <div class="auth-field">
+          <label for="name">Ad Soyad</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="5" r="3" stroke="#9ca3af" stroke-width="1.5"/>
+                <path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input class="auth-input" type="text" id="name" placeholder="Ahmet Yılmaz" autocomplete="name" />
+          </div>
+          <span class="auth-field-error" id="err-name"></span>
+        </div>
+
+        <div class="auth-field">
+          <label for="email">E-posta adresi</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="1" y="3" width="14" height="10" rx="2" stroke="#9ca3af" stroke-width="1.5"/>
+                <path d="M1 6l7 4 7-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input class="auth-input" type="email" id="email" placeholder="ornek@uni.edu" autocomplete="email" />
+          </div>
+          <span class="auth-field-error" id="err-email"></span>
+        </div>
+
+        <div class="auth-field">
+          <label for="password">Şifre</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="3" y="7" width="10" height="8" rx="2" stroke="#9ca3af" stroke-width="1.5"/>
+                <path d="M5 7V5a3 3 0 016 0v2" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input class="auth-input" type="password" id="password" placeholder="En az 6 karakter" autocomplete="new-password" />
+          </div>
+          <span class="auth-field-error" id="err-password"></span>
+        </div>
+
+        <button type="submit" class="auth-submit" id="btn-submit">Hesap Oluştur</button>
+      </form>
+
+      <p class="auth-switch">Zaten hesabın var mı? <a href="/login">Giriş Yap</a></p>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem('cb_token')) window.location.href = '/';
+
+    const form      = document.getElementById('register-form');
+    const btnSub    = document.getElementById('btn-submit');
+    const errBanner = document.getElementById('auth-error-banner');
+    const errText   = document.getElementById('auth-error-text');
+
+    function showError(msg) {
+      errText.textContent = msg;
+      errBanner.style.display = 'flex';
+    }
+    function clearErrors() {
+      errBanner.style.display = 'none';
+      ['name','email','password'].forEach(f => {
+        document.getElementById(`err-${f}`).textContent = '';
+        document.getElementById(f).classList.remove('error');
+      });
+    }
+    function fieldError(id, msg) {
+      document.getElementById(`err-${id}`).textContent = msg;
+      document.getElementById(id).classList.add('error');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+
+      const name     = document.getElementById('name').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      let ok = true;
+
+      if (name.length < 2)  { fieldError('name', 'İsim en az 2 karakter olmalıdır'); ok = false; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Geçerli bir e-posta adresi girin'); ok = false; }
+      if (password.length < 6) { fieldError('password', 'Şifre en az 6 karakter olmalıdır'); ok = false; }
+      if (!ok) return;
+
+      btnSub.disabled = true;
+      btnSub.textContent = 'Hesap oluşturuluyor...';
+
+      try {
+        const res  = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showError((data.errors || ['Kayıt başarısız']).join(' '));
+          return;
+        }
+        localStorage.setItem('cb_token', data.token);
+        localStorage.setItem('cb_user',  JSON.stringify(data.user));
+        window.location.href = '/';
+      } catch {
+        showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
+      } finally {
+        btnSub.disabled = false;
+        btnSub.textContent = 'Hesap Oluştur';
+      }
+    });
+  </script>
+</body>
+</html>

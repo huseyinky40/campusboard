@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CampusBoard app icon">
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="#7C3AED"/>
+  <path fill="#FFFFFF" fill-rule="evenodd" d="
+    M256 88
+    L410 154
+    L364 178
+    L364 342
+    C364 370 342 392 314 392
+    H198
+    C170 392 148 370 148 342
+    V178
+    L102 154
+    Z
+
+    M256 220
+    C238.3 220 224 234.3 224 252
+    C224 269.7 238.3 284 256 284
+    C273.7 284 288 269.7 288 252
+    C288 234.3 273.7 220 256 220
+    Z
+  "/>
+  <rect x="236" y="280" width="40" height="64" rx="20" fill="#7C3AED"/>
+</svg>
