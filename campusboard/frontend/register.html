@@ -104,8 +104,9 @@
                 <path d="M1 6l7 4 7-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </span>
-            <input class="auth-input" type="email" id="email" placeholder="ornek@uni.edu" autocomplete="email" />
+            <input class="auth-input" type="email" id="email" placeholder="ornek@arel.edu.tr" autocomplete="email" />
           </div>
+          <span class="auth-field-hint" id="hint-email" style="font-size:12px;color:#94a3b8;margin-top:4px;display:block;">Yalnızca @arel.edu.tr e-posta adresleriyle kayıt yapılabilir</span>
           <span class="auth-field-error" id="err-email"></span>
         </div>
 
@@ -179,11 +180,40 @@
       </form>
 
       <p class="auth-switch">Zaten hesabın var mı? <a href="/login">Giriş Yap</a></p>
+
+      <!-- E-posta doğrulama adımı (kayıt sonrası gösterilir) -->
+      <div id="verify-section" style="display:none">
+        <div class="auth-form-header">
+          <h1>E-postanı Doğrula</h1>
+          <p id="verify-desc">E-posta adresine 6 haneli bir kod gönderdik.</p>
+        </div>
+        <div id="verify-error-banner" class="auth-error-banner" style="display:none">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="7" stroke="#ef4444" stroke-width="1.5"/>
+            <path d="M8 5v3M8 10.5v.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span id="verify-error-text"></span>
+        </div>
+        <form id="verify-form" novalidate>
+          <div class="auth-field">
+            <label for="verify-code">Doğrulama Kodu</label>
+            <div class="auth-input-wrap">
+              <input class="auth-input" type="text" id="verify-code" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="letter-spacing:6px;font-size:20px;font-weight:700;text-align:center;" />
+            </div>
+            <span class="auth-field-error" id="err-verify-code"></span>
+          </div>
+          <button type="submit" class="auth-submit" id="btn-verify">Doğrula</button>
+        </form>
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:#64748b;">
+          Kod gelmedi mi?
+          <button id="btn-resend" type="button" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;padding:0;">Yeniden gönder</button>
+        </p>
+      </div>
     </div>
   </div>
 
   <script>
-    if (localStorage.getItem('cb_token') || sessionStorage.getItem('cb_token')) window.location.href = '/app';
+    if (sessionStorage.getItem('cb_token')) window.location.href = '/app';
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.addEventListener('pageshow', () => {
@@ -268,6 +298,8 @@
       document.getElementById(id).classList.add('error');
     }
 
+    let pendingEmail = '';
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearErrors();
@@ -303,14 +335,88 @@
           showError((data.errors || ['Kayıt başarısız']).join(' '));
           return;
         }
-        localStorage.setItem('cb_token', data.token);
-        localStorage.setItem('cb_user',  JSON.stringify(data.user));
-        window.location.href = '/app';
+        if (data.token) {
+          sessionStorage.setItem('cb_token', data.token);
+          sessionStorage.setItem('cb_user',  JSON.stringify(data.user));
+          window.location.href = '/app';
+        } else {
+          pendingEmail = email;
+          document.getElementById('register-form').style.display = 'none';
+          document.querySelector('.auth-switch').style.display = 'none';
+          document.getElementById('verify-desc').textContent =
+            email + ' adresine 6 haneli bir kod gönderdik.';
+          document.getElementById('verify-section').style.display = 'block';
+          document.getElementById('verify-code').focus();
+        }
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
       } finally {
         btnSub.disabled = false;
         btnSub.textContent = 'Hesap Oluştur';
+      }
+    });
+
+    const verifyForm    = document.getElementById('verify-form');
+    const btnVerify     = document.getElementById('btn-verify');
+    const verifyErrBanner = document.getElementById('verify-error-banner');
+    const verifyErrText   = document.getElementById('verify-error-text');
+
+    function showVerifyError(msg) {
+      verifyErrText.textContent = msg;
+      verifyErrBanner.style.display = 'flex';
+    }
+
+    verifyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      verifyErrBanner.style.display = 'none';
+      const code = document.getElementById('verify-code').value.trim();
+      if (!/^\d{6}$/.test(code)) {
+        document.getElementById('err-verify-code').textContent = '6 haneli kodu girin';
+        return;
+      }
+      document.getElementById('err-verify-code').textContent = '';
+      btnVerify.disabled = true;
+      btnVerify.textContent = 'Doğrulanıyor...';
+      try {
+        const apiBase = window.CAMPUSBOARD_API_BASE || '/api';
+        const res = await fetch(`${apiBase}/auth/verify-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingEmail, code }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showVerifyError((data.errors || ['Doğrulama başarısız']).join(' '));
+          return;
+        }
+        sessionStorage.setItem('cb_token', data.token);
+        sessionStorage.setItem('cb_user',  JSON.stringify(data.user));
+        window.location.href = '/app';
+      } catch {
+        showVerifyError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
+      } finally {
+        btnVerify.disabled = false;
+        btnVerify.textContent = 'Doğrula';
+      }
+    });
+
+    document.getElementById('btn-resend').addEventListener('click', async () => {
+      const btn = document.getElementById('btn-resend');
+      btn.disabled = true;
+      btn.textContent = 'Gönderiliyor...';
+      try {
+        const apiBase = window.CAMPUSBOARD_API_BASE || '/api';
+        await fetch(`${apiBase}/auth/resend-verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pendingEmail }),
+        });
+        verifyErrBanner.style.display = 'none';
+        btn.textContent = 'Gönderildi';
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Yeniden gönder'; }, 30000);
+      } catch {
+        btn.disabled = false;
+        btn.textContent = 'Yeniden gönder';
       }
     });
   </script>

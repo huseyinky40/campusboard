@@ -21,18 +21,25 @@ async function createPgAdapter(connectionString) {
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id         SERIAL PRIMARY KEY,
-      email      TEXT NOT NULL UNIQUE,
-      password   TEXT NOT NULL,
-      name       TEXT NOT NULL,
-      avatar     TEXT,
-      department TEXT,
-      faculty    TEXT,
-      phone      TEXT,
-      student_no TEXT,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id                   SERIAL PRIMARY KEY,
+      email                TEXT NOT NULL UNIQUE,
+      password             TEXT NOT NULL,
+      name                 TEXT NOT NULL,
+      avatar               TEXT,
+      department           TEXT,
+      faculty              TEXT,
+      phone                TEXT,
+      student_no           TEXT,
+      email_verified       BOOLEAN NOT NULL DEFAULT FALSE,
+      verify_token         TEXT,
+      verify_token_expires TIMESTAMPTZ,
+      created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified       BOOLEAN     NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_token         TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_token_expires TIMESTAMPTZ`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS listings (
@@ -92,16 +99,19 @@ function createSqliteAdapter() {
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      email      TEXT NOT NULL UNIQUE,
-      password   TEXT NOT NULL,
-      name       TEXT NOT NULL,
-      avatar     TEXT,
-      department TEXT,
-      faculty    TEXT,
-      phone      TEXT,
-      student_no TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+      email                TEXT NOT NULL UNIQUE,
+      password             TEXT NOT NULL,
+      name                 TEXT NOT NULL,
+      avatar               TEXT,
+      department           TEXT,
+      faculty              TEXT,
+      phone                TEXT,
+      student_no           TEXT,
+      email_verified       INTEGER NOT NULL DEFAULT 0,
+      verify_token         TEXT,
+      verify_token_expires TEXT,
+      created_at           TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS listings (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
