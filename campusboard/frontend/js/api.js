@@ -2,7 +2,7 @@ const API_BASE = window.CAMPUSBOARD_API_BASE || '/api';
 
 const Api = {
   _token() {
-    return localStorage.getItem('cb_token') || sessionStorage.getItem('cb_token');
+    return sessionStorage.getItem('cb_token');
   },
 
   async request(method, path, body) {
@@ -17,8 +17,6 @@ const Api = {
 
     // Token expired or invalid — go to login
     if (res.status === 401) {
-      localStorage.removeItem('cb_token');
-      localStorage.removeItem('cb_user');
       sessionStorage.removeItem('cb_token');
       sessionStorage.removeItem('cb_user');
       window.location.href = '/login';
