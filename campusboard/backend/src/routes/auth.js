@@ -106,7 +106,52 @@ function createAuthRouter(controller, authService) {
    */
   router.get('/me', requireAuth(authService), (req, res) => controller.me(req, res));
 
+  /**
+   * @swagger
+   * /api/auth/profile:
+   *   get:
+   *     summary: Geniş kullanıcı profili getir
+   *     tags: [Auth]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Profil bilgisi
+   *       401:
+   *         description: Token gerekli
+   *       404:
+   *         description: Kullanıcı bulunamadı
+   */
   router.get('/profile',  requireAuth(authService), (req, res) => controller.getProfile(req, res));
+
+  /**
+   * @swagger
+   * /api/auth/profile:
+   *   put:
+   *     summary: Kullanıcı profilini güncelle
+   *     tags: [Auth]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               name:       { type: string, example: "Ahmet Yılmaz" }
+   *               department: { type: string, example: "Bilgisayar Mühendisliği" }
+   *               faculty:    { type: string, example: "muhendislik" }
+   *               phone:      { type: string, example: "05001234567" }
+   *               student_no: { type: string, example: "20190001" }
+   *     responses:
+   *       200:
+   *         description: Profil güncellendi
+   *       400:
+   *         description: Validasyon hatası
+   *       401:
+   *         description: Token gerekli
+   */
   router.put('/profile',  requireAuth(authService), (req, res) => controller.updateProfile(req, res));
 
   return router;

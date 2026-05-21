@@ -43,7 +43,7 @@ const express = require('express');
  *
  *     ListingInput:
  *       type: object
- *       required: [title, description, category, faculty, author_name, contact]
+ *       required: [title, description, category, faculty, contact]
  *       properties:
  *         title:
  *           type: string
@@ -61,12 +61,14 @@ const express = require('express');
  *         faculty:
  *           type: string
  *           enum: [muhendislik, tip, hukuk, iktisat, egitim, fen-edebiyat, guzel-sanatlar, iletisim, diger]
- *         author_name:
- *           type: string
- *           example: "Ahmet Yılmaz"
  *         contact:
  *           type: string
  *           example: "ahmet@university.edu"
+ *         expires_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2026-12-31T23:59:59Z"
+ *           description: İsteğe bağlı bitiş tarihi (geçince ilan otomatik kapanır)
  *
  *     StatusInput:
  *       type: object
@@ -100,6 +102,8 @@ function createListingsRouter(controller) {
    *   get:
    *     summary: Tüm ilanları listele
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - in: query
    *         name: category
@@ -123,6 +127,11 @@ function createListingsRouter(controller) {
    *         schema:
    *           type: string
    *         description: Başlık, açıklama veya isimde arama yap
+   *       - in: query
+   *         name: mine
+   *         schema:
+   *           type: boolean
+   *         description: true ise sadece giriş yapan kullanıcının ilanlarını getirir
    *       - in: query
    *         name: page
    *         schema:
@@ -158,6 +167,8 @@ function createListingsRouter(controller) {
    *   get:
    *     summary: Filtrelenen ilanlar için özet sayıları getir
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - in: query
    *         name: category
@@ -176,6 +187,11 @@ function createListingsRouter(controller) {
    *         name: search
    *         schema:
    *           type: string
+   *       - in: query
+   *         name: mine
+   *         schema:
+   *           type: boolean
+   *         description: true ise sadece giriş yapan kullanıcının ilanlarını getirir
    *     responses:
    *       200:
    *         description: Başarılı
@@ -188,6 +204,8 @@ function createListingsRouter(controller) {
    *   get:
    *     summary: Tek bir ilanı getir
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - in: path
    *         name: id
@@ -219,6 +237,8 @@ function createListingsRouter(controller) {
    *   post:
    *     summary: Yeni ilan oluştur
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     requestBody:
    *       required: true
    *       content:
@@ -252,6 +272,8 @@ function createListingsRouter(controller) {
    *   put:
    *     summary: İlanı güncelle
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - in: path
    *         name: id
@@ -280,6 +302,8 @@ function createListingsRouter(controller) {
    *   patch:
    *     summary: İlan durumunu güncelle (aktif/kapandi)
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - in: path
    *         name: id
@@ -308,6 +332,8 @@ function createListingsRouter(controller) {
    *   delete:
    *     summary: İlanı sil
    *     tags: [Listings]
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - in: path
    *         name: id
@@ -332,7 +358,19 @@ function createListingsRouter(controller) {
    *       200:
    *         description: Başarılı
    */
-  // Not on listings router — mounted separately in app.js
+
+  /**
+   * @swagger
+   * /api/faculties:
+   *   get:
+   *     summary: Geçerli fakülteleri listele
+   *     tags: [Meta]
+   *     responses:
+   *       200:
+   *         description: Başarılı
+   */
+
+  // Above endpoints are mounted separately in app.js
 
   return router;
 }
