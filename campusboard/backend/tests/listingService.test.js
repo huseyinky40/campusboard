@@ -1,12 +1,14 @@
 const { ListingService, VALID_CATEGORIES, VALID_FACULTIES } = require('../src/services/listingService');
 const { createDb } = require('../src/db');
 
-function makeDb() { return createDb(':memory:'); }
+async function makeDb() { return createDb(':memory:'); }
 
-// Seed a user so listings have a valid user_id FK
-function seedUser(db) {
-  const result = db.prepare("INSERT INTO users (email, password, name) VALUES ('test@test.com','hash','Test')").run();
-  return result.lastInsertRowid;
+async function seedUser(db, email = 'test@test.com', name = 'Test') {
+  const result = await db.run(
+    "INSERT INTO users (email, password, name) VALUES (?, 'hash', ?) RETURNING id",
+    [email, name]
+  );
+  return result.rows[0].id;
 }
 
 const validData = {
@@ -19,7 +21,7 @@ const validData = {
 
 describe('ListingService — validate', () => {
   let service;
-  beforeEach(() => { service = new ListingService(makeDb()); });
+  beforeEach(async () => { service = new ListingService(await makeDb()); });
 
   test('geçerli veriyle hata dönmemeli', () => {
     expect(service.validate(validData)).toHaveLength(0);
@@ -46,111 +48,147 @@ describe('ListingService — validate', () => {
 
 describe('ListingService — CRUD', () => {
   let service, db, userId;
-  beforeEach(() => {
-    db = makeDb();
-    userId = seedUser(db);
+  beforeEach(async () => {
+    db = await makeDb();
+    userId = await seedUser(db);
     service = new ListingService(db);
   });
 
-  test('ilan oluşturulabilmeli', () => {
-    const l = service.create(userId, validData);
+  test('ilan oluşturulabilmeli', async () => {
+    const l = await service.create(userId, validData);
     expect(l.id).toBeDefined();
     expect(l.title).toBe(validData.title);
     expect(l.status).toBe('aktif');
     expect(l.user_id).toBe(userId);
   });
-  test('geçersiz veriyle oluşturma hata atmalı', () => {
-    expect(() => service.create(userId, { ...validData, title: 'ab' })).toThrow();
+  test('geçersiz veriyle oluşturma hata atmalı', async () => {
+    await expect(service.create(userId, { ...validData, title: 'ab' })).rejects.toBeTruthy();
   });
-  test('oluşturulan ilan getirilebilmeli', () => {
-    const created = service.create(userId, validData);
-    expect(service.getById(userId, created.id).title).toBe(validData.title);
+  test('oluşturulan ilan getirilebilmeli', async () => {
+    const created = await service.create(userId, validData);
+    expect((await service.getById(userId, created.id)).title).toBe(validData.title);
   });
-  test('olmayan id için getById null dönmeli', () => {
-    expect(service.getById(userId, 9999)).toBeNull();
+  test('olmayan id için getById null dönmeli', async () => {
+    expect(await service.getById(userId, 9999)).toBeNull();
   });
-  test('herhangi bir kullanıcı başkasının ilanını görüntüleyebilmeli', () => {
-    const created = service.create(userId, validData);
-    const otherId = db.prepare("INSERT INTO users (email,password,name) VALUES ('other@test.com','hash','Other')").run().lastInsertRowid;
-    // İlan panosu: tüm authenticated kullanıcılar tüm ilanları görebilir
-    expect(service.getById(otherId, created.id)).not.toBeNull();
-    expect(service.getById(otherId, created.id).id).toBe(created.id);
+  test('herhangi bir kullanıcı başkasının ilanını görüntüleyebilmeli', async () => {
+    const created = await service.create(userId, validData);
+    const otherId = (await db.run(
+      "INSERT INTO users (email, password, name) VALUES ('other@test.com', 'hash', 'Other') RETURNING id",
+      []
+    )).rows[0].id;
+    const listing = await service.getById(otherId, created.id);
+    expect(listing).not.toBeNull();
+    expect(listing.id).toBe(created.id);
   });
-  test('ilan güncellenebilmeli', () => {
-    const created = service.create(userId, validData);
-    const updated = service.update(userId, created.id, { ...validData, title: 'Güncellenmiş Başlık' });
+  test('ilan güncellenebilmeli', async () => {
+    const created = await service.create(userId, validData);
+    const updated = await service.update(userId, created.id, { ...validData, title: 'Güncellenmiş Başlık' });
     expect(updated.title).toBe('Güncellenmiş Başlık');
   });
-  test('olmayan ilan güncellemesi null dönmeli', () => {
-    expect(service.update(userId, 9999, validData)).toBeNull();
+  test('olmayan ilan güncellemesi null dönmeli', async () => {
+    expect(await service.update(userId, 9999, validData)).toBeNull();
   });
-  test('ilan durumu güncellenebilmeli', () => {
-    const created = service.create(userId, validData);
-    expect(service.updateStatus(userId, created.id, 'kapandi').status).toBe('kapandi');
+  test('ilan durumu güncellenebilmeli', async () => {
+    const created = await service.create(userId, validData);
+    expect((await service.updateStatus(userId, created.id, 'kapandi')).status).toBe('kapandi');
   });
-  test('geçersiz durum hata atmalı', () => {
-    const created = service.create(userId, validData);
-    expect(() => service.updateStatus(userId, created.id, 'gecersiz')).toThrow();
+  test('geçersiz durum hata atmalı', async () => {
+    const created = await service.create(userId, validData);
+    await expect(service.updateStatus(userId, created.id, 'gecersiz')).rejects.toBeTruthy();
   });
-  test('ilan silinebilmeli', () => {
-    const created = service.create(userId, validData);
-    expect(service.delete(userId, created.id)).toBe(true);
-    expect(service.getById(userId, created.id)).toBeNull();
+  test('ilan silinebilmeli', async () => {
+    const created = await service.create(userId, validData);
+    expect(await service.delete(userId, created.id)).toBe(true);
+    expect(await service.getById(userId, created.id)).toBeNull();
   });
-  test('olmayan ilanı silmek false dönmeli', () => {
-    expect(service.delete(userId, 9999)).toBe(false);
+  test('olmayan ilanı silmek false dönmeli', async () => {
+    expect(await service.delete(userId, 9999)).toBe(false);
   });
 });
 
 describe('ListingService — getAll filtreleme', () => {
   let service, userId;
-  beforeEach(() => {
-    const db = makeDb();
-    userId = seedUser(db);
+  beforeEach(async () => {
+    const db = await makeDb();
+    userId = await seedUser(db);
     service = new ListingService(db);
-    service.create(userId, { ...validData, category: 'ders-notu', faculty: 'muhendislik' });
-    service.create(userId, { ...validData, category: 'etkinlik', faculty: 'tip', title: 'Etkinlik İlanı Başlığı' });
-    service.create(userId, { ...validData, category: 'staj',     faculty: 'muhendislik', title: 'Staj İlanı Başlık' });
+    await service.create(userId, { ...validData, category: 'ders-notu', faculty: 'muhendislik' });
+    await service.create(userId, { ...validData, category: 'etkinlik', faculty: 'tip', title: 'Etkinlik İlanı Başlığı' });
+    await service.create(userId, { ...validData, category: 'staj',     faculty: 'muhendislik', title: 'Staj İlanı Başlık' });
   });
 
-  test('filtresiz tüm ilanları getirmeli', () => {
-    expect(service.getAll(userId).data).toHaveLength(3);
+  test('filtresiz tüm ilanları getirmeli', async () => {
+    expect((await service.getAll(userId)).data).toHaveLength(3);
   });
-  test('kategoriye göre filtrelemeli', () => {
-    const r = service.getAll(userId, { category: 'ders-notu' });
+  test('kategoriye göre filtrelemeli', async () => {
+    const r = await service.getAll(userId, { category: 'ders-notu' });
     expect(r.data).toHaveLength(1);
     expect(r.data[0].category).toBe('ders-notu');
   });
-  test('fakülteye göre filtrelemeli', () => {
-    expect(service.getAll(userId, { faculty: 'tip' }).data).toHaveLength(1);
+  test('fakülteye göre filtrelemeli', async () => {
+    expect((await service.getAll(userId, { faculty: 'tip' })).data).toHaveLength(1);
   });
-  test('arama yapabilmeli', () => {
-    const r = service.getAll(userId, { search: 'Etkinlik' });
+  test('arama yapabilmeli', async () => {
+    const r = await service.getAll(userId, { search: 'Etkinlik' });
     expect(r.data).toHaveLength(1);
     expect(r.data[0].category).toBe('etkinlik');
   });
-  test('birden fazla filtre birlikte çalışmalı', () => {
-    expect(service.getAll(userId, { faculty: 'muhendislik', category: 'staj' }).data).toHaveLength(1);
+  test('birden fazla filtre birlikte çalışmalı', async () => {
+    expect((await service.getAll(userId, { faculty: 'muhendislik', category: 'staj' })).data).toHaveLength(1);
   });
-  test('tüm ilanlar her kullanıcıya görünmeli (bulletin board)', () => {
-    expect(service.getAll(userId + 1).data).toHaveLength(3);
+  test('tüm ilanlar her kullanıcıya görünmeli (bulletin board)', async () => {
+    expect((await service.getAll(userId + 1)).data).toHaveLength(3);
   });
-  test('mine:true yalnızca kendi ilanlarını getirmeli', () => {
-    expect(service.getAll(userId, { mine: true }).data).toHaveLength(3);
-    expect(service.getAll(userId + 1, { mine: true }).data).toHaveLength(0);
+  test('mine:true yalnızca kendi ilanlarını getirmeli', async () => {
+    expect((await service.getAll(userId, { mine: true })).data).toHaveLength(3);
+    expect((await service.getAll(userId + 1, { mine: true })).data).toHaveLength(0);
   });
-  test('pagination metadata dönmeli', () => {
-    const r = service.getAll(userId, { page: 1, limit: 2 });
+  test('pagination metadata dönmeli', async () => {
+    const r = await service.getAll(userId, { page: 1, limit: 2 });
     expect(r.data).toHaveLength(2);
     expect(r.total).toBe(3);
     expect(r.totalPages).toBe(2);
     expect(r.page).toBe(1);
   });
+  test('summary tüm filtre sonucuna göre hesaplanmalı, sayfa limitine bağlı kalmamalı', async () => {
+    const soonDate = new Date();
+    soonDate.setDate(soonDate.getDate() + 3);
+    const laterDate = new Date();
+    laterDate.setDate(laterDate.getDate() + 14);
+
+    await service.create(userId, {
+      ...validData,
+      title: 'Yakında bitecek ilan başlığı',
+      category: 'genel',
+      expires_at: soonDate.toISOString().slice(0, 10),
+    });
+    await service.create(userId, {
+      ...validData,
+      title: 'Daha sonra bitecek ilan başlığı',
+      category: 'genel',
+      expires_at: laterDate.toISOString().slice(0, 10),
+    });
+    const closed = await service.create(userId, {
+      ...validData,
+      title: 'Kapalı ilan başlığı',
+      category: 'genel',
+    });
+    await service.updateStatus(userId, closed.id, 'kapandi');
+
+    const page = await service.getAll(userId, { page: 1, limit: 2 });
+    const summary = await service.getSummary(userId);
+
+    expect(page.data).toHaveLength(2);
+    expect(summary.total).toBe(6);
+    expect(summary.endingSoon).toBe(1);
+    expect(summary.closed).toBe(1);
+  });
 });
 
 describe('ListingService — meta', () => {
   let service;
-  beforeEach(() => { service = new ListingService(makeDb()); });
+  beforeEach(async () => { service = new ListingService(await makeDb()); });
 
   test('kategorileri dönmeli', () => {
     expect(service.getCategories()).toEqual(VALID_CATEGORIES);

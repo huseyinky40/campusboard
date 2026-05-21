@@ -3,38 +3,38 @@ class StatsService {
     this.db = db;
   }
 
-  getStats() {
-    const totals = this.db.prepare(`
+  async getStats() {
+    const totals = await this.db.get(`
       SELECT
-        COUNT(*)                                      AS total_listings,
-        SUM(CASE WHEN status = 'aktif'   THEN 1 ELSE 0 END) AS active_listings,
-        SUM(CASE WHEN status = 'kapandi' THEN 1 ELSE 0 END) AS closed_listings,
-        SUM(view_count)                               AS total_views
+        COUNT(*)                                                    AS total_listings,
+        SUM(CASE WHEN status = 'aktif'   THEN 1 ELSE 0 END)       AS active_listings,
+        SUM(CASE WHEN status = 'kapandi' THEN 1 ELSE 0 END)       AS closed_listings,
+        SUM(view_count)                                            AS total_views
       FROM listings
-    `).get();
+    `, []);
 
-    const byCategory = this.db.prepare(`
+    const byCategory = await this.db.all(`
       SELECT category, COUNT(*) AS count
       FROM listings GROUP BY category ORDER BY count DESC
-    `).all();
+    `, []);
 
-    const byFaculty = this.db.prepare(`
+    const byFaculty = await this.db.all(`
       SELECT faculty, COUNT(*) AS count
       FROM listings GROUP BY faculty ORDER BY count DESC
-    `).all();
+    `, []);
 
-    const totalUsers = this.db.prepare('SELECT COUNT(*) AS count FROM users').get().count;
-    const totalFavorites = this.db.prepare('SELECT COUNT(*) AS count FROM favorites').get().count;
+    const usersRow = await this.db.get('SELECT COUNT(*) AS count FROM users', []);
+    const favsRow  = await this.db.get('SELECT COUNT(*) AS count FROM favorites', []);
 
     return {
-      total_listings:  totals.total_listings,
-      active_listings: totals.active_listings,
-      closed_listings: totals.closed_listings,
-      total_views:     totals.total_views || 0,
-      total_users:     totalUsers,
-      total_favorites: totalFavorites,
-      by_category:     Object.fromEntries(byCategory.map(r => [r.category, r.count])),
-      by_faculty:      Object.fromEntries(byFaculty.map(r => [r.faculty, r.count])),
+      total_listings:  Number(totals.total_listings),
+      active_listings: Number(totals.active_listings),
+      closed_listings: Number(totals.closed_listings),
+      total_views:     Number(totals.total_views) || 0,
+      total_users:     Number(usersRow.count),
+      total_favorites: Number(favsRow.count),
+      by_category:     Object.fromEntries(byCategory.map(r => [r.category, Number(r.count)])),
+      by_faculty:      Object.fromEntries(byFaculty.map(r => [r.faculty,   Number(r.count)])),
     };
   }
 }

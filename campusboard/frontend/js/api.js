@@ -1,8 +1,8 @@
-const API_BASE = '/api';
+const API_BASE = window.CAMPUSBOARD_API_BASE || '/api';
 
 const Api = {
   _token() {
-    return localStorage.getItem('cb_token');
+    return localStorage.getItem('cb_token') || sessionStorage.getItem('cb_token');
   },
 
   async request(method, path, body) {
@@ -19,6 +19,8 @@ const Api = {
     if (res.status === 401) {
       localStorage.removeItem('cb_token');
       localStorage.removeItem('cb_user');
+      sessionStorage.removeItem('cb_token');
+      sessionStorage.removeItem('cb_user');
       window.location.href = '/login';
       return;
     }
@@ -39,6 +41,17 @@ const Api = {
     if (filters.limit)    params.set('limit',    filters.limit);
     const qs = params.toString();
     return this.request('GET', `/listings${qs ? '?' + qs : ''}`);
+  },
+
+  getListingsSummary(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.category) params.set('category', filters.category);
+    if (filters.faculty)  params.set('faculty',  filters.faculty);
+    if (filters.status)   params.set('status',   filters.status);
+    if (filters.search)   params.set('search',   filters.search);
+    if (filters.mine)     params.set('mine',     'true');
+    const qs = params.toString();
+    return this.request('GET', `/listings/summary${qs ? '?' + qs : ''}`);
   },
 
   getListing(id)          { return this.request('GET',    `/listings/${id}`); },

@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/favicon.ico",
+      "destination": "/assets/campusboard_app_icon.svg"
+    },
+    {
+      "source": "/api",
+      "destination": "https://backend-production-415e.up.railway.app/api"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "https://backend-production-415e.up.railway.app/api/$1"
+    },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/register", "destination": "/register.html" },
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/", "destination": "/index.html" }
+  ]
+}

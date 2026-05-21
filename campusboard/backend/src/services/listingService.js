@@ -5,7 +5,6 @@ const VALID_FACULTIES = [
 ];
 const VALID_STATUSES = ['aktif', 'kapandi'];
 
-// Listings closed for more than this many days are auto-deleted
 const CLOSED_RETENTION_DAYS = 30;
 
 class ListingService {
@@ -13,32 +12,27 @@ class ListingService {
     this.db = db;
   }
 
-  // ── Lazy cleanup ─────────────────────────────────────────────────────────
-  // Called before any read so expired/stale rows are cleaned up on-demand.
-  runCleanup() {
-    const now = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  async runCleanup() {
+    const now = new Date().toISOString().slice(0, 10);
 
-    // 1. Auto-close active listings whose expires_at has passed
-    this.db.prepare(`
+    await this.db.run(`
       UPDATE listings
       SET status    = 'kapandi',
-          closed_at = datetime('now','localtime'),
-          updated_at = datetime('now','localtime')
+          closed_at = NOW(),
+          updated_at = NOW()
       WHERE status = 'aktif'
         AND expires_at IS NOT NULL
         AND expires_at < ?
-    `).run(now);
+    `, [now]);
 
-    // 2. Hard-delete kapandı listings closed more than 30 days ago
-    this.db.prepare(`
+    await this.db.run(`
       DELETE FROM listings
       WHERE status = 'kapandi'
         AND closed_at IS NOT NULL
-        AND julianday('now','localtime') - julianday(closed_at) > ?
-    `).run(CLOSED_RETENTION_DAYS);
+        AND closed_at < NOW() - INTERVAL '${CLOSED_RETENTION_DAYS} days'
+    `, []);
   }
 
-  // ── Validation ────────────────────────────────────────────────────────────
   validate(data) {
     const errors = [];
     if (!data.title || data.title.trim().length < 3)
@@ -65,9 +59,8 @@ class ListingService {
     return errors;
   }
 
-  // ── Queries ───────────────────────────────────────────────────────────────
-  getAll(userId, filters = {}) {
-    this.runCleanup();
+  async getAll(userId, filters = {}) {
+    await this.runCleanup();
 
     let query = `
       SELECT l.*, u.name AS author_name, u.avatar AS author_avatar,
@@ -78,11 +71,9 @@ class ListingService {
       WHERE 1=1`;
     const params = [userId];
 
-    // ?mine=true → sadece giriş yapan kullanıcının ilanları
     if (filters.mine) {
       query += ' AND l.user_id = ?'; params.push(userId);
     }
-
     if (filters.category && VALID_CATEGORIES.includes(filters.category)) {
       query += ' AND l.category = ?'; params.push(filters.category);
     }
@@ -94,24 +85,24 @@ class ListingService {
     }
     if (filters.search && filters.search.trim().length > 0) {
       const term = `%${filters.search.trim()}%`;
-      query += ' AND (l.title LIKE ? OR l.description LIKE ?)';
+      query += ' AND (l.title ILIKE ? OR l.description ILIKE ?)';
       params.push(term, term);
     }
 
-    query += ' ORDER BY l.created_at DESC';
+    const countQuery = query.replace(
+      /SELECT l\.\*, u\.name AS author_name, u\.avatar AS author_avatar,\s+CASE WHEN f\.listing_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorited/,
+      'SELECT COUNT(*) AS total'
+    );
 
     const PAGE_LIMIT = 12;
     const page  = Math.max(1, parseInt(filters.page) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(filters.limit) || PAGE_LIMIT));
     const offset = (page - 1) * limit;
 
-    const countQuery = query.replace(
-      /SELECT l\.\*, u\.name AS author_name, u\.avatar AS author_avatar,\s+CASE WHEN f\.listing_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorited/,
-      'SELECT COUNT(*) AS total'
-    );
-    const { total } = this.db.prepare(countQuery).get(params);
+    const countResult = await this.db.get(countQuery, params);
+    const total = Number(countResult.total);
 
-    const rows = this.db.prepare(query + ' LIMIT ? OFFSET ?').all([...params, limit, offset]);
+    const rows = await this.db.all(query + ' ORDER BY l.created_at DESC LIMIT ? OFFSET ?', [...params, limit, offset]);
 
     return {
       data:       rows,
@@ -122,106 +113,153 @@ class ListingService {
     };
   }
 
-  getById(userId, id) {
-    const listing = this.db.prepare(`
+  async getSummary(userId, filters = {}) {
+    await this.runCleanup();
+
+    let query = `
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE
+          WHEN l.status = 'aktif'
+           AND l.expires_at IS NOT NULL
+           AND DATE(l.expires_at) >= ?
+           AND DATE(l.expires_at) <= ?
+          THEN 1 ELSE 0 END) AS ending_soon,
+        SUM(CASE WHEN l.status = 'kapandi' THEN 1 ELSE 0 END) AS closed
+      FROM listings l
+      JOIN users u ON u.id = l.user_id
+      WHERE 1=1`;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(today);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const params = [
+      today.toISOString().slice(0, 10),
+      weekEnd.toISOString().slice(0, 10),
+    ];
+
+    if (filters.mine) {
+      query += ' AND l.user_id = ?'; params.push(userId);
+    }
+    if (filters.category && VALID_CATEGORIES.includes(filters.category)) {
+      query += ' AND l.category = ?'; params.push(filters.category);
+    }
+    if (filters.faculty && VALID_FACULTIES.includes(filters.faculty)) {
+      query += ' AND l.faculty = ?'; params.push(filters.faculty);
+    }
+    if (filters.status && VALID_STATUSES.includes(filters.status)) {
+      query += ' AND l.status = ?'; params.push(filters.status);
+    }
+    if (filters.search && filters.search.trim().length > 0) {
+      const term = `%${filters.search.trim()}%`;
+      query += ' AND (l.title ILIKE ? OR l.description ILIKE ?)';
+      params.push(term, term);
+    }
+
+    const row = await this.db.get(query, params);
+
+    return {
+      total: Number(row.total) || 0,
+      endingSoon: Number(row.ending_soon) || 0,
+      closed: Number(row.closed) || 0,
+    };
+  }
+
+  async getById(userId, id) {
+    const listing = await this.db.get(`
       SELECT l.*, u.name AS author_name, u.avatar AS author_avatar,
              CASE WHEN f.listing_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorited
       FROM listings l
       JOIN users u ON u.id = l.user_id
       LEFT JOIN favorites f ON f.listing_id = l.id AND f.user_id = ?
       WHERE l.id = ?
-    `).get(userId, id) || null;
+    `, [userId, id]);
 
     if (listing) {
-      const inserted = this.db.prepare(
-        'INSERT OR IGNORE INTO listing_views (user_id, listing_id) VALUES (?, ?)'
-      ).run(userId, id);
-      if (inserted.changes > 0) {
-        this.db.prepare('UPDATE listings SET view_count = view_count + 1 WHERE id = ?').run(id);
-        listing.view_count += 1;
+      const inserted = await this.db.run(
+        'INSERT INTO listing_views (user_id, listing_id) VALUES (?, ?) ON CONFLICT DO NOTHING',
+        [userId, id]
+      );
+      if (inserted.rowCount > 0) {
+        await this.db.run('UPDATE listings SET view_count = view_count + 1 WHERE id = ?', [id]);
+        listing.view_count = Number(listing.view_count) + 1;
       }
     }
 
-    return listing;
+    return listing || null;
   }
 
-  getOwnedById(userId, id) {
-    return this.db.prepare(`
+  async getOwnedById(userId, id) {
+    return this.db.get(`
       SELECT l.*, u.name AS author_name
       FROM listings l
       JOIN users u ON u.id = l.user_id
       WHERE l.id = ? AND l.user_id = ?
-    `).get(id, userId) || null;
+    `, [id, userId]);
   }
 
-  // ── Write operations ──────────────────────────────────────────────────────
-  create(userId, data) {
+  async create(userId, data) {
     const errors = this.validate(data);
     if (errors.length > 0) throw { type: 'validation', errors };
 
-    const expiresAt = data.expires_at || null;
-
-    const result = this.db.prepare(`
+    const result = await this.db.run(`
       INSERT INTO listings (user_id, title, description, category, faculty, contact, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
+      VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
+    `, [
       userId,
       data.title.trim(),
       data.description.trim(),
       data.category,
       data.faculty,
       data.contact.trim(),
-      expiresAt
-    );
+      data.expires_at || null,
+    ]);
 
-    return this.getById(userId, result.lastInsertRowid);
+    return this.getById(userId, result.rows[0].id);
   }
 
-  update(userId, id, data) {
-    if (!this.getOwnedById(userId, id)) return null;
+  async update(userId, id, data) {
+    if (!await this.getOwnedById(userId, id)) return null;
     const errors = this.validate(data);
     if (errors.length > 0) throw { type: 'validation', errors };
 
-    const expiresAt = data.expires_at || null;
-
-    this.db.prepare(`
+    await this.db.run(`
       UPDATE listings
       SET title = ?, description = ?, category = ?, faculty = ?,
-          contact = ?, expires_at = ?, updated_at = datetime('now', 'localtime')
+          contact = ?, expires_at = ?, updated_at = NOW()
       WHERE id = ? AND user_id = ?
-    `).run(
+    `, [
       data.title.trim(),
       data.description.trim(),
       data.category,
       data.faculty,
       data.contact.trim(),
-      expiresAt,
+      data.expires_at || null,
       id,
-      userId
-    );
+      userId,
+    ]);
 
     return this.getOwnedById(userId, id);
   }
 
-  updateStatus(userId, id, status) {
+  async updateStatus(userId, id, status) {
     if (!VALID_STATUSES.includes(status))
       throw { type: 'validation', errors: ['Geçersiz durum. Kabul edilenler: aktif, kapandi'] };
-    if (!this.getOwnedById(userId, id)) return null;
+    if (!await this.getOwnedById(userId, id)) return null;
 
-    // Track when a listing is manually closed
-    const closedAt = status === 'kapandi' ? "datetime('now','localtime')" : 'NULL';
-    this.db.prepare(`
-      UPDATE listings
-      SET status = ?, closed_at = ${closedAt}, updated_at = datetime('now','localtime')
-      WHERE id = ? AND user_id = ?
-    `).run(status, id, userId);
+    const closedAt = status === 'kapandi' ? 'NOW()' : 'NULL';
+    await this.db.run(
+      `UPDATE listings SET status = ?, closed_at = ${closedAt}, updated_at = NOW() WHERE id = ? AND user_id = ?`,
+      [status, id, userId]
+    );
 
     return this.getById(userId, id);
   }
 
-  delete(userId, id) {
-    if (!this.getOwnedById(userId, id)) return false;
-    this.db.prepare('DELETE FROM listings WHERE id = ? AND user_id = ?').run(id, userId);
+  async delete(userId, id) {
+    if (!await this.getOwnedById(userId, id)) return false;
+    await this.db.run('DELETE FROM listings WHERE id = ? AND user_id = ?', [id, userId]);
     return true;
   }
 

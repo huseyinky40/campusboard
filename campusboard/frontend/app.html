@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>CampusBoard — Öğrenci İlan Panosu</title>
+  <link rel="icon" type="image/svg+xml" href="assets/campusboard_app_icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap&subset=latin-ext" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="dashboard-body">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <img src="assets/campusboard_app_icon.svg" width="36" height="36" alt="CampusBoard" />
+        <span class="dashboard-wordmark">Campus<span>Board</span></span>
+      </div>
+      <div class="search-wrap">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 20 20" fill="none">
+          <circle cx="8.5" cy="8.5" r="5.5" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <path d="M14 14l3 3" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="search-input" class="search-input" placeholder="İlan ara..." />
+      </div>
+      <div class="header-actions">
+        <button id="btn-favorites" class="btn btn-fav">
+          <svg viewBox="0 0 16 16" fill="none" width="15" height="15">
+            <path d="M8 13.5S2 9.5 2 5.5A3.5 3.5 0 018 3.17 3.5 3.5 0 0114 5.5c0 4-6 8-6 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          Favorilerim
+        </button>
+        <button id="btn-my-listings" class="btn btn-ghost">
+          <svg viewBox="0 0 16 16" fill="none" width="15" height="15">
+            <rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          İlanlarım
+        </button>
+        <button id="btn-new" class="btn btn-primary">
+          <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+            <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Yeni İlan
+        </button>
+        <div class="user-menu" id="user-menu">
+          <button class="user-menu-trigger" id="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
+            <span id="header-avatar"></span>
+            <span id="user-name" class="user-name"></span>
+            <svg class="user-menu-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="user-dropdown" id="user-dropdown">
+            <button class="user-dropdown-item" id="btn-profile">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              Profili Düzenle
+            </button>
+            <div class="user-dropdown-divider"></div>
+            <button class="user-dropdown-item danger" id="btn-logout">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Çıkış Yap
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <div class="filters-inner">
+
+      <!-- Category chips -->
+      <div class="filter-chips-wrap">
+        <span class="filter-section-label">Kategori</span>
+        <div class="category-pills" id="category-pills" role="group" aria-label="Kategori filtresi">
+          <button class="pill active" data-category="">Tümü</button>
+          <button class="pill" data-category="ders-notu">Ders Notu</button>
+          <button class="pill" data-category="etkinlik">Etkinlik</button>
+          <button class="pill" data-category="staj">Staj</button>
+          <button class="pill" data-category="ikinci-el">İkinci El</button>
+          <button class="pill" data-category="kayip-bulundu">Kayıp/Bulundu</button>
+          <button class="pill" data-category="genel">Genel</button>
+        </div>
+      </div>
+
+      <!-- Faceted filters -->
+      <div class="facet-filters">
+
+        <!-- Faculty custom select -->
+        <div class="facet" id="facet-faculty">
+          <span class="facet-label">Fakülte</span>
+          <button class="facet-trigger" aria-haspopup="listbox" aria-expanded="false" id="facet-faculty-btn">
+            <span class="facet-value" id="facet-faculty-val">Tüm Fakülteler</span>
+            <svg class="facet-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="facet-dropdown" role="listbox" aria-label="Fakülte seçin" id="facet-faculty-dropdown">
+            <div class="facet-option selected" role="option" aria-selected="true" data-value="">Tüm Fakülteler</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="muhendislik">Mühendislik</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="tip">Tıp</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="hukuk">Hukuk</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="iktisat">İktisat</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="egitim">Eğitim</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="fen-edebiyat">Fen-Edebiyat</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="guzel-sanatlar">Güzel Sanatlar</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="iletisim">İletişim</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="diger">Diğer</div>
+          </div>
+          <!-- hidden native select kept for JS compatibility -->
+          <select id="faculty-filter" class="select-filter-hidden" aria-hidden="true" tabindex="-1">
+            <option value="">Tüm Fakülteler</option>
+            <option value="muhendislik">Mühendislik</option>
+            <option value="tip">Tıp</option>
+            <option value="hukuk">Hukuk</option>
+            <option value="iktisat">İktisat</option>
+            <option value="egitim">Eğitim</option>
+            <option value="fen-edebiyat">Fen-Edebiyat</option>
+            <option value="guzel-sanatlar">Güzel Sanatlar</option>
+            <option value="iletisim">İletişim</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+
+        <!-- Status custom select -->
+        <div class="facet" id="facet-status">
+          <span class="facet-label">Durum</span>
+          <button class="facet-trigger" aria-haspopup="listbox" aria-expanded="false" id="facet-status-btn">
+            <span class="facet-value" id="facet-status-val">Tümü</span>
+            <svg class="facet-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="facet-dropdown" role="listbox" aria-label="Durum seçin" id="facet-status-dropdown">
+            <div class="facet-option selected" role="option" aria-selected="true" data-value="">Tümü</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="aktif"><span class="facet-status-dot facet-status-dot--aktif"></span>Aktif</div>
+            <div class="facet-option" role="option" aria-selected="false" data-value="kapandi"><span class="facet-status-dot facet-status-dot--kapandi"></span>Kapandı</div>
+          </div>
+          <select id="status-filter" class="select-filter-hidden" aria-hidden="true" tabindex="-1">
+            <option value="">Tümü</option>
+            <option value="aktif">Aktif</option>
+            <option value="kapandi">Kapandı</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <section class="dashboard-insights" aria-label="Pano özeti">
+    <article class="dashboard-stat">
+      <span class="dashboard-stat-label">Eşleşen ilan</span>
+      <strong id="stat-total">0</strong>
+      <small>filtre sonucunda</small>
+    </article>
+    <article class="dashboard-stat">
+      <span class="dashboard-stat-label">Gösterilen</span>
+      <strong id="stat-shown">0</strong>
+      <small>mevcut sayfada</small>
+    </article>
+    <article class="dashboard-stat">
+      <span class="dashboard-stat-label">Yaklaşan bitiş</span>
+      <strong id="stat-soon">0</strong>
+      <small>tüm sonuçlarda</small>
+    </article>
+    <article class="dashboard-stat">
+      <span class="dashboard-stat-label">Kapalı</span>
+      <strong id="stat-closed">0</strong>
+      <small>tüm sonuçlarda</small>
+    </article>
+  </section>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="results-bar">
+      <div class="results-copy">
+        <span id="results-count" class="results-count"></span>
+        <span id="results-context" class="results-context"></span>
+      </div>
+      <div class="sort-control" id="sort-control">
+        <span>Sırala</span>
+        <button type="button" class="sort-trigger" id="sort-trigger" aria-haspopup="listbox" aria-expanded="false">
+          <span id="sort-value">Varsayılan</span>
+          <svg class="sort-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="sort-dropdown" id="sort-dropdown" role="listbox" aria-label="Sıralama seçin">
+          <div class="sort-option selected" role="option" aria-selected="true" data-value="default">Varsayılan</div>
+          <div class="sort-option" role="option" aria-selected="false" data-value="newest">En yeni</div>
+          <div class="sort-option" role="option" aria-selected="false" data-value="deadline">Son tarihi yakın</div>
+          <div class="sort-option" role="option" aria-selected="false" data-value="popular">En çok görüntülenen</div>
+          <div class="sort-option" role="option" aria-selected="false" data-value="title">Başlığa göre</div>
+        </div>
+        <select id="sort-select" class="select-filter-hidden" aria-hidden="true" tabindex="-1">
+          <option value="default">Varsayılan</option>
+          <option value="newest">En yeni</option>
+          <option value="deadline">Son tarihi yakın</option>
+          <option value="popular">En çok görüntülenen</option>
+          <option value="title">Başlığa göre</option>
+        </select>
+      </div>
+    </div>
+    <div id="listings-grid" class="listings-grid"></div>
+    <div id="pagination-bar" class="pagination-bar hidden">
+      <button id="btn-prev" class="pagination-btn" aria-label="Önceki sayfa">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span id="pagination-info" class="pagination-info"></span>
+      <button id="btn-next" class="pagination-btn" aria-label="Sonraki sayfa">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div id="empty-state" class="empty-state hidden">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" width="28" height="28">
+          <rect x="3" y="5" width="18" height="14" rx="2" stroke="#9ca3af" stroke-width="1.5"/>
+          <path d="M7 9h10M7 12h6" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p>Henüz ilan yok</p>
+      <p class="empty-sub">Filtrelerinizi değiştirin ya da ilk ilanınızı oluşturun.</p>
+    </div>
+  </main>
+
+  <!-- MODAL: CREATE / EDIT -->
+  <div id="modal-form" class="modal-overlay hidden">
+    <div class="modal modal-form-panel">
+      <div class="modal-header form-modal-header">
+        <div class="form-modal-heading">
+          <div class="form-modal-title-row">
+            <span id="modal-form-icon" class="form-modal-icon"></span>
+            <h2 id="modal-form-title">Yeni İlan</h2>
+          </div>
+          <p id="modal-form-subtitle" class="form-modal-subtitle"></p>
+        </div>
+        <button class="modal-close" id="modal-form-close">&times;</button>
+      </div>
+      <div class="modal-scroll-body">
+      <form id="listing-form" novalidate>
+        <input type="hidden" id="form-id" />
+        <div class="form-group">
+          <label for="form-title">Başlık <span class="required">*</span></label>
+          <input type="text" id="form-title" maxlength="100" placeholder="İlan başlığını girin" />
+          <span class="field-error" id="err-title"></span>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Kategori <span class="required">*</span></label>
+            <div class="fsel-wrap" id="fsel-category-wrap">
+              <button type="button" class="fsel-trigger" id="fsel-category-btn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="fsel-value" id="fsel-category-val">Seçin...</span>
+                <svg class="fsel-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="fsel-dropdown" id="fsel-category-dd" role="listbox">
+                <div class="fsel-option" role="option" data-value="">Seçin...</div>
+                <div class="fsel-option" role="option" data-value="ders-notu">Ders Notu</div>
+                <div class="fsel-option" role="option" data-value="etkinlik">Etkinlik</div>
+                <div class="fsel-option" role="option" data-value="staj">Staj</div>
+                <div class="fsel-option" role="option" data-value="ikinci-el">İkinci El</div>
+                <div class="fsel-option" role="option" data-value="kayip-bulundu">Kayıp/Bulundu</div>
+                <div class="fsel-option" role="option" data-value="genel">Genel</div>
+              </div>
+            </div>
+            <select id="form-category" class="fsel-hidden" aria-hidden="true" tabindex="-1">
+              <option value="">Seçin...</option>
+              <option value="ders-notu">Ders Notu</option>
+              <option value="etkinlik">Etkinlik</option>
+              <option value="staj">Staj</option>
+              <option value="ikinci-el">İkinci El</option>
+              <option value="kayip-bulundu">Kayıp/Bulundu</option>
+              <option value="genel">Genel</option>
+            </select>
+            <span class="field-error" id="err-category"></span>
+          </div>
+          <div class="form-group">
+            <label>Fakülte <span class="required">*</span></label>
+            <div class="fsel-wrap" id="fsel-faculty-wrap">
+              <button type="button" class="fsel-trigger" id="fsel-faculty-btn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="fsel-value" id="fsel-faculty-val">Seçin...</span>
+                <svg class="fsel-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="fsel-dropdown" id="fsel-faculty-dd" role="listbox">
+                <div class="fsel-option" role="option" data-value="">Seçin...</div>
+                <div class="fsel-option" role="option" data-value="muhendislik">Mühendislik</div>
+                <div class="fsel-option" role="option" data-value="tip">Tıp</div>
+                <div class="fsel-option" role="option" data-value="hukuk">Hukuk</div>
+                <div class="fsel-option" role="option" data-value="iktisat">İktisat</div>
+                <div class="fsel-option" role="option" data-value="egitim">Eğitim</div>
+                <div class="fsel-option" role="option" data-value="fen-edebiyat">Fen-Edebiyat</div>
+                <div class="fsel-option" role="option" data-value="guzel-sanatlar">Güzel Sanatlar</div>
+                <div class="fsel-option" role="option" data-value="iletisim">İletişim</div>
+                <div class="fsel-option" role="option" data-value="diger">Diğer</div>
+              </div>
+            </div>
+            <select id="form-faculty" class="fsel-hidden" aria-hidden="true" tabindex="-1">
+              <option value="">Seçin...</option>
+              <option value="muhendislik">Mühendislik</option>
+              <option value="tip">Tıp</option>
+              <option value="hukuk">Hukuk</option>
+              <option value="iktisat">İktisat</option>
+              <option value="egitim">Eğitim</option>
+              <option value="fen-edebiyat">Fen-Edebiyat</option>
+              <option value="guzel-sanatlar">Güzel Sanatlar</option>
+              <option value="iletisim">İletişim</option>
+              <option value="diger">Diğer</option>
+            </select>
+            <span class="field-error" id="err-faculty"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="form-description">Açıklama <span class="required">*</span></label>
+          <textarea id="form-description" rows="4" maxlength="2000" placeholder="İlanınızı detaylıca açıklayın"></textarea>
+          <span class="field-error" id="err-description"></span>
+        </div>
+        <div class="form-group contact-method-block">
+          <label class="contact-method-label">İletişim <span class="required">*</span></label>
+          <div class="contact-fields">
+            <div class="contact-field-row">
+              <div class="contact-field-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M1 6l7 4 7-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="contact-field-body">
+                <label class="contact-field-label" for="form-contact-email">E-Posta</label>
+                <input type="email" id="form-contact-email" class="contact-field-input" placeholder="ornek@universite.edu" autocomplete="email" />
+              </div>
+            </div>
+            <div class="contact-field-row">
+              <div class="contact-field-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 2h3l1.5 3.5-2 1.2A9 9 0 009.3 10.5l1.2-2L14 10v3a1 1 0 01-1 1A12 12 0 012 3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="contact-field-body">
+                <label class="contact-field-label" for="form-contact-phone">Telefon</label>
+                <input type="tel" id="form-contact-phone" class="contact-field-input" placeholder="05XX XXX XX XX" autocomplete="tel" />
+              </div>
+            </div>
+            <div class="contact-field-row">
+              <div class="contact-field-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="contact-field-body">
+                <label class="contact-field-label" for="form-contact-other">Diğer</label>
+                <input type="text" id="form-contact-other" class="contact-field-input" placeholder="Sosyal medya, web sitesi vb." autocomplete="off" />
+              </div>
+            </div>
+          </div>
+          <span class="field-error" id="err-contact"></span>
+          <span class="contact-hint">En az birini doldurun. Birden fazla doldurabilirsiniz.</span>
+        </div>
+        <div class="form-group">
+          <label for="form-expires-at">
+            Bitiş Tarihi
+            <span class="form-label-hint">— boş bırakılırsa süresiz</span>
+          </label>
+          <input type="date" id="form-expires-at" max="2050-12-31" />
+          <span class="field-hint">Aktif ilanlar bu tarihte otomatik kapatılır. Kapatılan ilanlar 30 gün sonra sistemden silinir.</span>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="btn-form-cancel">İptal</button>
+          <button type="submit" class="btn btn-primary" id="btn-form-submit">İlanı Yayınla</button>
+        </div>
+      </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETAIL -->
+  <div id="modal-detail" class="modal-overlay hidden">
+    <div class="modal modal-detail">
+      <div class="modal-scroll-body">
+        <div class="modal-header">
+          <div class="modal-detail-badges" id="detail-badges"></div>
+          <div class="detail-header-actions">
+            <button class="detail-fav-btn" id="detail-fav-btn" aria-label="Favorilere ekle" title="Favorilere ekle">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M8 13.5S2 9.5 2 5.5A3.5 3.5 0 018 3.17 3.5 3.5 0 0114 5.5c0 4-6 8-6 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="modal-close" id="modal-detail-close">&times;</button>
+          </div>
+        </div>
+        <div class="detail-header">
+          <p class="detail-overline" id="detail-overline"></p>
+          <h2 id="detail-title"></h2>
+        </div>
+        <div id="detail-meta"></div>
+        <div id="detail-delete-warning" class="detail-delete-warning hidden"></div>
+        <div class="detail-desc-section">
+          <div id="detail-description" class="detail-description"></div>
+        </div>
+        <div class="detail-contact-box" id="detail-contact-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROFILE -->
+  <div id="modal-profile" class="modal-overlay hidden">
+    <div class="modal modal-profile">
+
+      <!-- Header -->
+      <div class="pmodal-header">
+        <div>
+          <h2 class="pmodal-title">Profili Düzenle</h2>
+          <p class="pmodal-subtitle">Kişisel bilgilerinizi görüntüleyin ve güncelleyin.</p>
+        </div>
+        <button class="pmodal-close" id="modal-profile-close" aria-label="Kapat">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="pmodal-scroll-body">
+
+      <!-- Avatar -->
+      <div class="pmodal-avatar-row">
+        <div class="pmodal-avatar-ring">
+          <div class="pmodal-avatar-img" id="profile-avatar-preview"></div>
+          <label class="pmodal-avatar-overlay" for="profile-avatar-input" title="Fotoğraf yükle">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v10M3 8h10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </label>
+          <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;" />
+        </div>
+        <div class="pmodal-avatar-info">
+          <span class="pmodal-avatar-name" id="pmodal-display-name"></span>
+          <div class="pmodal-avatar-btns">
+            <label class="pfield-btn-secondary" for="profile-avatar-input" style="cursor:pointer;">Fotoğraf Değiştir</label>
+            <button class="pfield-btn-ghost" id="btn-remove-avatar">Kaldır</button>
+          </div>
+          <p class="pmodal-avatar-hint">JPG, PNG veya WebP · Maks 2 MB</p>
+        </div>
+      </div>
+
+      <div class="pmodal-divider"></div>
+
+      <!-- Form -->
+      <form id="profile-form" novalidate class="pmodal-form">
+
+        <!-- Ad Soyad -->
+        <div class="pfield">
+          <label class="pfield-label" for="profile-name">Ad Soyad <span class="pfield-required">*</span></label>
+          <div class="pfield-input-wrap">
+            <svg class="pfield-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M2.5 14c0-2.761 2.462-4.5 5.5-4.5s5.5 1.739 5.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <input class="pfield-input" type="text" id="profile-name" maxlength="80" placeholder="Adınız ve soyadınız" autocomplete="name" />
+          </div>
+          <span class="pfield-error" id="err-profile-name"></span>
+        </div>
+
+        <!-- E-posta (readonly) -->
+        <div class="pfield">
+          <label class="pfield-label" for="profile-email">E-posta</label>
+          <div class="pfield-input-wrap pfield-input-wrap--readonly">
+            <svg class="pfield-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M1 6l7 4 7-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <input class="pfield-input pfield-input--readonly" type="email" id="profile-email" disabled autocomplete="email" />
+          </div>
+        </div>
+
+        <!-- Fakülte + Bölüm -->
+        <div class="pfield-row">
+          <div class="pfield">
+            <label class="pfield-label">Fakülte</label>
+            <div class="pfacet" id="pfacet-faculty">
+              <svg class="pfield-icon pfacet-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <path d="M8 1L15 5v2H1V5L8 1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                <rect x="3" y="7" width="2" height="6" rx=".5" stroke="currentColor" stroke-width="1.3"/>
+                <rect x="7" y="7" width="2" height="6" rx=".5" stroke="currentColor" stroke-width="1.3"/>
+                <rect x="11" y="7" width="2" height="6" rx=".5" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M1 13h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              <button class="pfacet-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" id="pfacet-faculty-btn">
+                <span class="pfacet-value" id="pfacet-faculty-val">Seçin...</span>
+                <svg class="pfacet-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="pfacet-dropdown" role="listbox" id="pfacet-faculty-dropdown">
+                <div class="pfacet-scroll">
+                  <div class="pfacet-option selected" role="option" aria-selected="true" data-value="">Seçin...</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="muhendislik">Mühendislik</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="tip">Tıp</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="hukuk">Hukuk</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="iktisat">İktisat</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="egitim">Eğitim</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="fen-edebiyat">Fen-Edebiyat</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="guzel-sanatlar">Güzel Sanatlar</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="iletisim">İletişim</div>
+                  <div class="pfacet-option" role="option" aria-selected="false" data-value="diger">Diğer</div>
+                </div>
+              </div>
+              <select class="select-filter-hidden" id="profile-faculty" aria-hidden="true" tabindex="-1">
+                <option value="">Seçin...</option>
+                <option value="muhendislik">Mühendislik</option>
+                <option value="tip">Tıp</option>
+                <option value="hukuk">Hukuk</option>
+                <option value="iktisat">İktisat</option>
+                <option value="egitim">Eğitim</option>
+                <option value="fen-edebiyat">Fen-Edebiyat</option>
+                <option value="guzel-sanatlar">Güzel Sanatlar</option>
+                <option value="iletisim">İletişim</option>
+                <option value="diger">Diğer</option>
+              </select>
+            </div>
+          </div>
+          <div class="pfield">
+            <label class="pfield-label" for="profile-department">Bölüm</label>
+            <div class="pfield-input-wrap">
+              <svg class="pfield-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M5 6h6M5 9h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              <input class="pfield-input" type="text" id="profile-department" maxlength="80" placeholder="Bölümünüz" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Öğrenci No + Telefon -->
+        <div class="pfield-row">
+          <div class="pfield">
+            <label class="pfield-label" for="profile-student-no">Öğrenci No</label>
+            <div class="pfield-input-wrap">
+              <svg class="pfield-icon" width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M5 5h6M5 8h4M5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              <input class="pfield-input" type="text" id="profile-student-no" maxlength="20" placeholder="2021123456" />
+            </div>
+          </div>
+          <div class="pfield">
+            <label class="pfield-label" for="profile-phone">Telefon</label>
+            <div class="pfield-input-wrap pfield-phone-wrap">
+              <span class="pfield-phone-prefix">+90</span>
+              <input class="pfield-input pfield-input--phone" type="tel" id="profile-phone" maxlength="14" placeholder="5XX XXX XX XX" inputmode="numeric" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer actions -->
+        <div class="pmodal-footer">
+          <button type="button" class="pfield-btn-ghost" id="btn-profile-cancel">İptal</button>
+          <button type="submit" class="pmodal-save-btn" id="btn-profile-submit">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8l4 4 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Kaydet
+          </button>
+        </div>
+
+      </form>
+      </div><!-- /pmodal-scroll-body -->
+    </div>
+  </div>
+
+  <!-- CONFIRM DIALOG -->
+  <div id="confirm-overlay" class="confirm-overlay" aria-modal="true" role="dialog" aria-labelledby="confirm-title">
+    <div class="confirm-dialog" id="confirm-dialog">
+      <div class="confirm-icon-wrap" id="confirm-icon-wrap">
+        <svg id="confirm-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none"></svg>
+      </div>
+      <div class="confirm-body">
+        <h3 class="confirm-title" id="confirm-title"></h3>
+        <p class="confirm-message" id="confirm-message"></p>
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-btn--cancel" id="confirm-cancel">İptal</button>
+        <button class="confirm-btn confirm-btn--ok" id="confirm-ok"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: FAVORITES -->
+  <div id="modal-favorites" class="modal-overlay hidden">
+    <div class="modal mld-modal">
+      <div class="mld-header">
+        <div class="mld-header-left">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" class="mld-header-icon">
+            <path d="M8 13.5S2 9.5 2 5.5A3.5 3.5 0 018 3.17 3.5 3.5 0 0114 5.5c0 4-6 8-6 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <h2 class="mld-title">Favorilerim</h2>
+            <p class="mld-subtitle" id="fav-count">Yükleniyor...</p>
+          </div>
+        </div>
+        <button class="mld-close" id="fav-close" aria-label="Kapat">&times;</button>
+      </div>
+
+      <div class="mld-toolbar">
+        <div class="mld-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" class="mld-search-icon">
+            <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M14 14l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="fav-search" class="mld-search-input" placeholder="Favorilerde ara..." />
+        </div>
+      </div>
+
+      <div class="mld-body" id="fav-body">
+        <div class="mld-loading" id="fav-loading">
+          <div class="mld-spinner"></div>
+          <span>Favoriler yükleniyor...</span>
+        </div>
+        <div id="fav-list" class="mld-list"></div>
+        <div id="fav-empty" class="mld-empty hidden">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+            <path d="M12 21S4 15 4 9a5 5 0 0116 0c0 6-8 12-8 12z" stroke="#f9a8d4" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+          <p class="mld-empty-title">Henüz favori ilanın yok</p>
+          <p class="mld-empty-sub">İlanlardaki kalp ikonuna tıklayarak favorilere ekleyebilirsin.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MY LISTINGS -->
+  <div id="modal-my-listings" class="modal-overlay hidden">
+    <div class="modal mld-modal">
+
+      <div class="mld-header">
+        <div class="mld-header-left">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" class="mld-header-icon">
+            <rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <div>
+            <h2 class="mld-title">İlanlarım</h2>
+            <p class="mld-subtitle" id="mld-count">Yükleniyor...</p>
+          </div>
+        </div>
+        <button class="mld-close" id="mld-close" aria-label="Kapat">&times;</button>
+      </div>
+
+      <div class="mld-toolbar">
+        <div class="mld-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" class="mld-search-icon">
+            <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M14 14l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="mld-search" class="mld-search-input" placeholder="İlanlarında ara..." />
+        </div>
+        <div class="mld-filter-wrap" id="mld-filter-wrap">
+          <button class="mld-filter-trigger" id="mld-filter-trigger" aria-haspopup="listbox" aria-expanded="false">
+            <span class="mld-filter-value" id="mld-filter-value">Tümü</span>
+            <svg class="mld-filter-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="mld-filter-dropdown" id="mld-filter-dropdown" role="listbox">
+            <div class="mld-filter-option selected" role="option" data-value="">Tümü</div>
+            <div class="mld-filter-option" role="option" data-value="aktif">Aktif</div>
+            <div class="mld-filter-option" role="option" data-value="kapandi">Kapandı</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mld-body" id="mld-body">
+        <div class="mld-loading" id="mld-loading">
+          <div class="mld-spinner"></div>
+          <span>İlanlar yükleniyor...</span>
+        </div>
+        <div id="mld-list" class="mld-list"></div>
+        <div id="mld-empty" class="mld-empty hidden">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="5" width="18" height="14" rx="2" stroke="#c4b5fd" stroke-width="1.5"/>
+            <path d="M7 9h10M7 12h6" stroke="#c4b5fd" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <p class="mld-empty-title">Henüz ilanın yok</p>
+          <p class="mld-empty-sub">İlk ilanını oluşturmak için "Yeni İlan" butonuna tıkla.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Profile faculty custom dropdown
+    (function() {
+      const pfacet   = document.getElementById('pfacet-faculty');
+      const btn      = document.getElementById('pfacet-faculty-btn');
+      const dropdown = document.getElementById('pfacet-faculty-dropdown');
+      const valSpan  = document.getElementById('pfacet-faculty-val');
+      const native   = document.getElementById('profile-faculty');
+
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.contains('open');
+        dropdown.classList.toggle('open', !isOpen);
+        btn.classList.toggle('open', !isOpen);
+        btn.setAttribute('aria-expanded', !isOpen);
+        if (!isOpen) {
+          setTimeout(() => {
+            const scrollEl = pfacet.closest('.pmodal-scroll-body');
+            if (!scrollEl) return;
+            const dropRect    = dropdown.getBoundingClientRect();
+            const scrollRect  = scrollEl.getBoundingClientRect();
+            if (dropRect.bottom > scrollRect.bottom - 8) {
+              scrollEl.scrollBy({ top: dropRect.bottom - scrollRect.bottom + 24, behavior: 'smooth' });
+            }
+          }, 10);
+        }
+      });
+
+      dropdown.querySelectorAll('.pfacet-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          dropdown.querySelectorAll('.pfacet-option').forEach(o => {
+            o.classList.remove('selected');
+            o.setAttribute('aria-selected', 'false');
+          });
+          opt.classList.add('selected');
+          opt.setAttribute('aria-selected', 'true');
+          valSpan.textContent = opt.dataset.value ? opt.textContent : 'Seçin...';
+          native.value = opt.dataset.value;
+          dropdown.classList.remove('open');
+          btn.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+        });
+      });
+
+      // Expose sync helper for openProfile()
+      window._syncPfacetFaculty = function(val) {
+        const opt = dropdown.querySelector(`[data-value="${val}"]`) || dropdown.querySelector('[data-value=""]');
+        dropdown.querySelectorAll('.pfacet-option').forEach(o => {
+          o.classList.toggle('selected', o.dataset.value === val);
+          o.setAttribute('aria-selected', o.dataset.value === val ? 'true' : 'false');
+        });
+        valSpan.textContent = (val && opt) ? opt.textContent : 'Seçin...';
+      };
+    })();
+
+    // Custom facet dropdowns — syncs with hidden native selects
+    document.querySelectorAll('.facet').forEach(facet => {
+      const btn      = facet.querySelector('.facet-trigger');
+      const dropdown = facet.querySelector('.facet-dropdown');
+      const valSpan  = facet.querySelector('.facet-value');
+      const native   = facet.querySelector('select');
+
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.contains('open');
+        // close all
+        document.querySelectorAll('.facet-dropdown.open').forEach(d => {
+          d.classList.remove('open');
+          d.closest('.facet').querySelector('.facet-trigger').classList.remove('open');
+          d.closest('.facet').querySelector('.facet-trigger').setAttribute('aria-expanded','false');
+        });
+        if (!isOpen) {
+          dropdown.classList.add('open');
+          btn.classList.add('open');
+          btn.setAttribute('aria-expanded','true');
+        }
+      });
+
+      dropdown.querySelectorAll('.facet-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          // update UI
+          dropdown.querySelectorAll('.facet-option').forEach(o => {
+            o.classList.remove('selected');
+            o.setAttribute('aria-selected','false');
+          });
+          opt.classList.add('selected');
+          opt.setAttribute('aria-selected','true');
+          valSpan.textContent = opt.textContent;
+
+          // sync native select → triggers existing change listeners
+          native.value = opt.dataset.value;
+          native.dispatchEvent(new Event('change'));
+
+          // close
+          dropdown.classList.remove('open');
+          btn.classList.remove('open');
+          btn.setAttribute('aria-expanded','false');
+        });
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.facet-dropdown.open').forEach(d => {
+        d.classList.remove('open');
+        d.closest('.facet').querySelector('.facet-trigger').classList.remove('open');
+        d.closest('.facet').querySelector('.facet-trigger').setAttribute('aria-expanded','false');
+      });
+      const pfd = document.getElementById('pfacet-faculty-dropdown');
+      if (pfd && pfd.classList.contains('open')) {
+        pfd.classList.remove('open');
+        document.getElementById('pfacet-faculty-btn').classList.remove('open');
+        document.getElementById('pfacet-faculty-btn').setAttribute('aria-expanded','false');
+      }
+    });
+
+    // Keyboard: Escape closes
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.facet-dropdown.open').forEach(d => {
+          d.classList.remove('open');
+          d.closest('.facet').querySelector('.facet-trigger').classList.remove('open');
+          d.closest('.facet').querySelector('.facet-trigger').setAttribute('aria-expanded','false');
+        });
+        const pfd = document.getElementById('pfacet-faculty-dropdown');
+        if (pfd && pfd.classList.contains('open')) {
+          pfd.classList.remove('open');
+          document.getElementById('pfacet-faculty-btn').classList.remove('open');
+          document.getElementById('pfacet-faculty-btn').setAttribute('aria-expanded','false');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

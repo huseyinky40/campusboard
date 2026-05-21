@@ -16,13 +16,13 @@ const { requireAuth } = require('../middleware/auth');
  *       properties:
  *         name:     { type: string, example: "Ahmet Yılmaz" }
  *         email:    { type: string, example: "ahmet@uni.edu" }
- *         password: { type: string, minLength: 6, example: "sifre123" }
+ *         password: { type: string, minLength: 8, example: "sifre1234" }
  *     LoginInput:
  *       type: object
  *       required: [email, password]
  *       properties:
  *         email:    { type: string, example: "ahmet@uni.edu" }
- *         password: { type: string, example: "sifre123" }
+ *         password: { type: string, example: "sifre1234" }
  *     AuthResponse:
  *       type: object
  *       properties:
@@ -50,6 +50,10 @@ function createAuthRouter(controller, authService) {
    *       content:
    *         application/json:
    *           schema: { $ref: '#/components/schemas/RegisterInput' }
+   *           example:
+   *             name: "Mehmet Yıldırım"
+   *             email: "mehmet@uni.edu"
+   *             password: "sifre1234"
    *     responses:
    *       201:
    *         description: Kayıt başarılı
@@ -72,6 +76,9 @@ function createAuthRouter(controller, authService) {
    *       content:
    *         application/json:
    *           schema: { $ref: '#/components/schemas/LoginInput' }
+   *           example:
+   *             email: "mehmet@uni.edu"
+   *             password: "sifre1234"
    *     responses:
    *       200:
    *         description: Giriş başarılı
