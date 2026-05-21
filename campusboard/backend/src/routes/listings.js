@@ -154,6 +154,36 @@ function createListingsRouter(controller) {
 
   /**
    * @swagger
+   * /api/listings/summary:
+   *   get:
+   *     summary: Filtrelenen ilanlar için özet sayıları getir
+   *     tags: [Listings]
+   *     parameters:
+   *       - in: query
+   *         name: category
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: faculty
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *           enum: [aktif, kapandi]
+   *       - in: query
+   *         name: search
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Başarılı
+   */
+  router.get('/summary', (req, res) => controller.getSummary(req, res));
+
+  /**
+   * @swagger
    * /api/listings/{id}:
    *   get:
    *     summary: Tek bir ilanı getir

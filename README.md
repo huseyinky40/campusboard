@@ -38,6 +38,16 @@ npm start
 App runs at `http://localhost:3000`  
 Swagger UI: `http://localhost:3000/api-docs`
 
+Optional environment variables:
+
+```bash
+JWT_SECRET=change-this-secret
+DATABASE_URL=your-postgresql-connection-string
+CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+```
+
+If `DATABASE_URL` is not set, the app expects a local/default database connection. In production, `JWT_SECRET` must be set.
+
 Development mode (auto-reload):
 ```bash
 npm run dev

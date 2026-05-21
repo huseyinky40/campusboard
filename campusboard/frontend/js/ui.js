@@ -193,12 +193,26 @@ const UI = {
     btnNext.disabled  = page >= totalPages;
   },
 
+  renderOverview(listings, summary = {}) {
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    setText('stat-total', summary.total ?? listings.length);
+    setText('stat-shown', listings.length);
+    setText('stat-soon', summary.endingSoon ?? 0);
+    setText('stat-closed', summary.closed ?? 0);
+  },
+
   renderGrid(listings) {
     const grid  = document.getElementById('listings-grid');
     const empty = document.getElementById('empty-state');
     const count = document.getElementById('results-count');
+    const context = document.getElementById('results-context');
 
     count.textContent = `${listings.length} ilan`;
+    if (context) context.textContent = listings.length ? 'Mevcut sayfada gösteriliyor' : 'Filtreleri değiştirerek tekrar dene';
 
     if (listings.length === 0) {
       grid.innerHTML = '';
@@ -284,9 +298,15 @@ const UI = {
     document.getElementById('detail-title').textContent = listing.title;
     document.getElementById('detail-meta').innerHTML = detailMetaHTML(listing);
 
-    // Deletion warning banner
+    const currentUser = (() => {
+      try { return JSON.parse(localStorage.getItem('cb_user') || sessionStorage.getItem('cb_user') || '{}'); }
+      catch { return {}; }
+    })();
+    const isOwner     = listing.user_id === currentUser.id;
+
+    // Deletion warning banner is only relevant to the listing owner.
     const warnEl = document.getElementById('detail-delete-warning');
-    if (listing.status === 'kapandi' && listing.closed_at) {
+    if (isOwner && listing.status === 'kapandi' && listing.closed_at) {
       const elapsed   = (Date.now() - new Date(listing.closed_at.replace(' ', 'T')).getTime()) / 86400000;
       const remaining = Math.max(0, Math.ceil(30 - elapsed));
       let mod, text;
@@ -308,8 +328,6 @@ const UI = {
     document.getElementById('detail-description').textContent = listing.description;
 
     const contactBox  = document.getElementById('detail-contact-box');
-    const currentUser = (() => { try { return JSON.parse(localStorage.getItem('cb_user') || '{}'); } catch { return {}; } })();
-    const isOwner     = listing.user_id === currentUser.id;
 
     if (isOwner) {
       contactBox.innerHTML = '';

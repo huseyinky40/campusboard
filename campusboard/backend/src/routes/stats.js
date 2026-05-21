@@ -36,8 +36,13 @@ function createStatsRouter(statsService) {
    *                 by_faculty:
    *                   type: object
    */
-  router.get('/', (req, res) => {
-    res.json(statsService.getStats());
+  router.get('/', async (req, res) => {
+    try {
+      const stats = await statsService.getStats();
+      res.json(stats);
+    } catch (err) {
+      res.status(500).json({ error: 'Sunucu hatası' });
+    }
   });
 
   return router;

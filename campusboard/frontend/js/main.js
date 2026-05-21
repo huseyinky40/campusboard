@@ -1,5 +1,5 @@
 // Redirect to login if not authenticated
-if (!localStorage.getItem('cb_token')) {
+if (!localStorage.getItem('cb_token') && !sessionStorage.getItem('cb_token')) {
   window.location.href = '/login';
 }
 
@@ -19,7 +19,9 @@ function setFsel(name, val) {
   }
   const dd = document.getElementById(`fsel-${name}-dd`);
   if (dd) dd.querySelectorAll('.fsel-option').forEach(opt => {
-    opt.classList.toggle('selected', opt.dataset.value === val);
+    const selected = opt.dataset.value === val;
+    opt.classList.toggle('selected', selected);
+    opt.setAttribute('aria-selected', String(selected));
   });
 }
 
@@ -114,6 +116,7 @@ const App = (() => {
     filters: { category: '', faculty: '', status: '', search: '' },
     page: 1,
     totalPages: 1,
+    sort: 'default',
   };
 
   let _formReturnToMLD = false;
@@ -129,7 +132,8 @@ const App = (() => {
   // ── Auth ──────────────────────────────────────────
   function initUser() {
     try {
-      const user = JSON.parse(localStorage.getItem('cb_user') || '{}');
+      const raw = localStorage.getItem('cb_user') || sessionStorage.getItem('cb_user') || '{}';
+      const user = JSON.parse(raw);
       document.getElementById('user-name').textContent = user.name || '';
       const avatarEl = document.getElementById('header-avatar');
       if (avatarEl) avatarEl.innerHTML = avatarHTML(user.name, user.avatar, 28);
@@ -139,25 +143,85 @@ const App = (() => {
   function logout() {
     localStorage.removeItem('cb_token');
     localStorage.removeItem('cb_user');
+    sessionStorage.removeItem('cb_token');
+    sessionStorage.removeItem('cb_user');
     window.location.href = '/login';
   }
 
   // ── Load & render ─────────────────────────────────
+  function sortListings(listings) {
+    const rank = s => s === 'aktif' ? 0 : 1;
+    const byStatus = (a, b) => rank(a.status) - rank(b.status);
+    const getDeadline = l => l.expires_at ? new Date(l.expires_at).getTime() : Number.MAX_SAFE_INTEGER;
+
+    return [...listings].sort((a, b) => {
+      const statusOrder = byStatus(a, b);
+      if (statusOrder !== 0) return statusOrder;
+
+      if (state.sort === 'deadline') return getDeadline(a) - getDeadline(b);
+      if (state.sort === 'popular') return (Number(b.view_count) || 0) - (Number(a.view_count) || 0);
+      if (state.sort === 'title') return String(a.title || '').localeCompare(String(b.title || ''), 'tr');
+      return b.id - a.id;
+    });
+  }
+
+  async function loadListingsSummary(filters) {
+    try {
+      return await Api.getListingsSummary(filters);
+    } catch {
+      const all = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const res = await Api.getListings({ ...filters, page, limit: 50 });
+        if (!res) break;
+        all.push(...(res.data || []));
+        totalPages = res.totalPages || 1;
+        page += 1;
+      } while (page <= totalPages);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(today);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      return {
+        total: all.length,
+        endingSoon: all.filter(l => {
+          if (l.status !== 'aktif' || !l.expires_at) return false;
+          const expires = new Date(l.expires_at);
+          expires.setHours(0, 0, 0, 0);
+          return expires >= today && expires <= weekEnd;
+        }).length,
+        closed: all.filter(l => l.status === 'kapandi').length,
+      };
+    }
+  }
+
   async function loadListings(resetPage = false) {
     if (resetPage) state.page = 1;
+    const grid = document.getElementById('listings-grid');
+    grid?.classList.add('listings-grid--transitioning');
     try {
-      const res = await Api.getListings({ ...state.filters, page: state.page });
-      if (!res) return;
+      const [res, summary] = await Promise.all([
+        Api.getListings({ ...state.filters, page: state.page }),
+        loadListingsSummary(state.filters),
+      ]);
+      if (!res) {
+        grid?.classList.remove('listings-grid--transitioning');
+        return;
+      }
       state.totalPages = res.totalPages || 1;
 
-      const sorted = [...res.data].sort((a, b) => {
-        const rank = s => s === 'aktif' ? 0 : 1;
-        if (rank(a.status) !== rank(b.status)) return rank(a.status) - rank(b.status);
-        return b.id - a.id;
-      });
+      const sorted = sortListings(res.data);
+      UI.renderOverview(sorted, summary || { total: res.total });
       UI.renderGrid(sorted);
       UI.renderPagination(state.page, state.totalPages, res.total);
+      setTimeout(() => {
+        requestAnimationFrame(() => grid?.classList.remove('listings-grid--transitioning'));
+      }, 120);
     } catch {
+      grid?.classList.remove('listings-grid--transitioning');
       UI.toast('İlanlar yüklenemedi', 'error');
     }
   }
@@ -259,7 +323,8 @@ const App = (() => {
     try {
       const res = await Api.updateProfile(payload);
       const updated = res.data;
-      localStorage.setItem('cb_user', JSON.stringify(updated));
+      const store = localStorage.getItem('cb_token') ? localStorage : sessionStorage;
+      store.setItem('cb_user', JSON.stringify(updated));
       initUser();
       closeProfile();
       UI.toast('Profil güncellendi', 'success');
@@ -612,7 +677,7 @@ const App = (() => {
               }
               try {
                 await Api.updateStatus(id, next);
-                UI.toast(next === 'kapandi' ? 'İlan kapatıldı' : 'İlan yeniden açıldı', 'success');
+                UI.toast(next === 'kapandi' ? 'İlan yayından kaldırıldı' : 'İlan yeniden açıldı', next === 'kapandi' ? 'error' : 'success');
                 loadListings();
                 await _load();
               } catch { UI.toast('Durum güncellenemedi', 'error'); }
@@ -627,7 +692,7 @@ const App = (() => {
               if (!ok) return;
               try {
                 await Api.deleteListing(id);
-                UI.toast('İlan silindi', 'success');
+                UI.toast('İlan silindi', 'error');
                 loadListings();
                 await _load();
               } catch { UI.toast('Silme işlemi başarısız', 'error'); }
@@ -653,9 +718,18 @@ const App = (() => {
       empty.classList.add('hidden');
 
       try {
-        const res = await Api.getListings({ mine: true });
-        if (!res) return;
-        _allListings = res.data || [];
+        const all = [];
+        let page = 1;
+        let totalPages = 1;
+        do {
+          const res = await Api.getListings({ mine: true, limit: 50, page });
+          if (!res) return;
+          all.push(...(res.data || []));
+          totalPages = res.totalPages || 1;
+          page += 1;
+        } while (page <= totalPages);
+
+        _allListings = all;
         document.getElementById('mld-count').textContent = `${_allListings.length} ilan`;
         _renderList();
       } catch {
@@ -745,10 +819,12 @@ const App = (() => {
     menuTrigger.addEventListener('click', e => {
       e.stopPropagation();
       const open = userDropdown.classList.toggle('open');
+      menuTrigger.classList.toggle('open', open);
       menuTrigger.setAttribute('aria-expanded', open);
     });
     document.addEventListener('click', () => {
       userDropdown.classList.remove('open');
+      menuTrigger.classList.remove('open');
       menuTrigger.setAttribute('aria-expanded', false);
     });
 
@@ -766,6 +842,8 @@ const App = (() => {
     // Profile modal
     document.getElementById('btn-profile').addEventListener('click', () => {
       userDropdown.classList.remove('open');
+      menuTrigger.classList.remove('open');
+      menuTrigger.setAttribute('aria-expanded', false);
       openProfile();
     });
     document.getElementById('modal-profile-close').addEventListener('click', closeProfile);
@@ -827,6 +905,53 @@ const App = (() => {
       state.filters.search = e.target.value;
       loadListings(true);
     }, 300));
+
+    const sortSelect = document.getElementById('sort-select');
+    const sortTrigger = document.getElementById('sort-trigger');
+    const sortDropdown = document.getElementById('sort-dropdown');
+    const sortValue = document.getElementById('sort-value');
+
+    function setSort(value) {
+      if (state.sort === value) {
+        sortDropdown?.classList.remove('open');
+        sortTrigger?.classList.remove('open');
+        sortTrigger?.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      state.sort = value;
+      if (sortSelect) sortSelect.value = value;
+      sortDropdown?.querySelectorAll('.sort-option').forEach(opt => {
+        const selected = opt.dataset.value === value;
+        opt.classList.toggle('selected', selected);
+        opt.setAttribute('aria-selected', String(selected));
+        if (selected && sortValue) sortValue.textContent = opt.textContent;
+      });
+      sortDropdown?.classList.remove('open');
+      sortTrigger?.classList.remove('open');
+      sortTrigger?.setAttribute('aria-expanded', 'false');
+      loadListings(false);
+    }
+
+    sortTrigger?.addEventListener('click', e => {
+      e.stopPropagation();
+      const isOpen = sortDropdown.classList.toggle('open');
+      sortTrigger.classList.toggle('open', isOpen);
+      sortTrigger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    sortDropdown?.addEventListener('click', e => {
+      const opt = e.target.closest('.sort-option');
+      if (!opt) return;
+      setSort(opt.dataset.value);
+    });
+
+    document.addEventListener('click', e => {
+      if (!document.getElementById('sort-control')?.contains(e.target)) {
+        sortDropdown?.classList.remove('open');
+        sortTrigger?.classList.remove('open');
+        sortTrigger?.setAttribute('aria-expanded', 'false');
+      }
+    });
 
     document.getElementById('btn-prev').addEventListener('click', () => {
       if (state.page > 1) { state.page--; loadListings(); window.scrollTo({ top: 0, behavior: 'smooth' }); }

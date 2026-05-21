@@ -2,19 +2,32 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Kayıt Ol — CampusBoard</title>
   <link rel="icon" type="image/svg+xml" href="assets/campusboard_app_icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap&subset=latin-ext" rel="stylesheet" />
+  <link rel="prefetch" href="/" />
+  <link rel="prefetch" href="/login" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/auth.css" />
 </head>
-<body class="auth-body">
+<body class="auth-body" id="register-page">
 
   <!-- Sol panel -->
   <div class="auth-panel-left">
-    <div class="auth-brand">
-      <img src="assets/campusboard_app_icon.svg" width="32" height="32" alt="CampusBoard" style="border-radius:8px;" />
-      <img src="assets/CampusBoard_wordmark_caps_black_cap_transparent.svg" height="44" alt="CampusBoard" style="display:block;" />
+    <div class="auth-topbar">
+      <a class="auth-back" href="/" aria-label="Ana sayfaya dön">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M12.5 5L7.5 10l5 5M8 10h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Geri</span>
+      </a>
+      <a class="auth-brand" href="/" aria-label="CampusBoard ana sayfa">
+        <img src="assets/campusboard_app_icon.svg" width="32" height="32" alt="" style="border-radius:8px;" />
+        <span class="auth-brand-text">Campus<span>Board</span></span>
+      </a>
     </div>
 
     <div class="auth-hero">
@@ -45,6 +58,14 @@
 
   <!-- Sağ panel -->
   <div class="auth-panel-right">
+    <div class="auth-mobile-hero">
+      <div class="auth-mobile-brand-row">
+        <img src="/assets/campusboard_app_icon.svg" width="30" height="30" alt="CampusBoard" style="border-radius:8px;" />
+        <span class="auth-mobile-brand-text">Campus<span>Board</span></span>
+      </div>
+      <h2 class="auth-mobile-page-title">Hesap oluştur</h2>
+      <p class="auth-mobile-page-sub">Kampüs topluluğuna katıl, ücretsiz başla.</p>
+    </div>
     <div class="auth-form-wrap">
       <div class="auth-form-header">
         <h1>Hesap oluştur</h1>
@@ -69,7 +90,7 @@
                 <path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </span>
-            <input class="auth-input" type="text" id="name" placeholder="Ahmet Yılmaz" autocomplete="name" />
+            <input class="auth-input" type="text" id="name" placeholder="Ahmet Yılmaz" autocomplete="name" spellcheck="false" />
           </div>
           <span class="auth-field-error" id="err-name"></span>
         </div>
@@ -97,9 +118,61 @@
                 <path d="M5 7V5a3 3 0 016 0v2" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </span>
-            <input class="auth-input" type="password" id="password" placeholder="En az 6 karakter" autocomplete="new-password" />
+            <input class="auth-input" type="password" id="password" placeholder="En az 8 karakter" autocomplete="new-password" style="padding-right:2.75rem!important;" />
+            <button type="button" id="toggle-password" class="auth-toggle-pw" aria-label="Şifreyi göster/gizle">
+              <svg id="icon-eye" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:block">
+                <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="8" cy="8" r="2" stroke="#9ca3af" stroke-width="1.5"/>
+              </svg>
+              <svg id="icon-eye-off" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none">
+                <path d="M14 2L2 14M9.4 6.6A2 2 0 016.6 9.4M10.73 3.27A6.9 6.9 0 018 3C3.5 3 1 8 1 8a12.5 12.5 0 002.06 2.73M12.73 5.27A12.5 12.5 0 0115 8s-2.5 5-7 5a6.9 6.9 0 01-3.73-1.27" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
+
+          <div class="auth-pw-rules">
+            <div class="auth-pw-rule" id="rule-len">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.25" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              En az 8 karakter
+            </div>
+            <div class="auth-pw-rule" id="rule-upper">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.25" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Büyük harf
+            </div>
+            <div class="auth-pw-rule" id="rule-lower">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.25" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Küçük harf
+            </div>
+            <div class="auth-pw-rule" id="rule-num">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.25" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Rakam
+            </div>
+          </div>
+
           <span class="auth-field-error" id="err-password"></span>
+        </div>
+
+        <div class="auth-field">
+          <label for="confirm-password">Şifre Tekrar</label>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="3" y="7" width="10" height="8" rx="2" stroke="#9ca3af" stroke-width="1.5"/>
+                <path d="M5 7V5a3 3 0 016 0v2" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input class="auth-input" type="password" id="confirm-password" placeholder="••••••••" autocomplete="new-password" style="padding-right:2.75rem!important;" />
+            <button type="button" id="toggle-confirm" class="auth-toggle-pw" aria-label="Şifreyi göster/gizle">
+              <svg id="icon-eye-c" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:block">
+                <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="8" cy="8" r="2" stroke="#9ca3af" stroke-width="1.5"/>
+              </svg>
+              <svg id="icon-eye-off-c" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none">
+                <path d="M2 2l12 12M6.5 6.56A2 2 0 0010.44 10.5M5.27 3.27A6.9 6.9 0 018 3c4.5 0 7 5 7 5a12.5 12.5 0 01-2.06 2.73M3.27 5.27A12.5 12.5 0 001 8s2.5 5 7 5a6.9 6.9 0 003.73-1.27" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <span class="auth-field-error" id="err-confirm-password"></span>
         </div>
 
         <button type="submit" class="auth-submit" id="btn-submit">Hesap Oluştur</button>
@@ -110,8 +183,68 @@
   </div>
 
   <script>
-    if (localStorage.getItem('cb_token')) window.location.href = '/';
+    if (localStorage.getItem('cb_token') || sessionStorage.getItem('cb_token')) window.location.href = '/app';
 
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.addEventListener('pageshow', () => {
+      document.body.classList.remove('page-transitioning');
+    });
+    window.addEventListener('pagehide', () => {
+      document.body.classList.remove('page-transitioning');
+    });
+    document.querySelectorAll('a[href]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const url = new URL(link.href, window.location.href);
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          link.target ||
+          url.origin !== window.location.origin ||
+          url.pathname === window.location.pathname
+        ) return;
+
+        event.preventDefault();
+        if (reduceMotion) {
+          window.location.assign(url.href);
+          return;
+        }
+        requestAnimationFrame(() => {
+          document.body.classList.add('page-transitioning');
+          window.setTimeout(() => window.location.assign(url.href), 110);
+        });
+      });
+    });
+
+    // Şifre göster/gizle
+    function setupToggle(btnId, inputId, eyeId, eyeOffId) {
+      const btn = document.getElementById(btnId);
+      const inp = document.getElementById(inputId);
+      const eye = document.getElementById(eyeId);
+      const eyeOff = document.getElementById(eyeOffId);
+      btn.addEventListener('click', () => {
+        const visible = inp.type === 'text';
+        inp.type = visible ? 'password' : 'text';
+        eye.style.display    = visible ? 'block' : 'none';
+        eyeOff.style.display = visible ? 'none'  : 'block';
+      });
+    }
+    setupToggle('toggle-password', 'password',         'icon-eye',   'icon-eye-off');
+    setupToggle('toggle-confirm',  'confirm-password', 'icon-eye-c', 'icon-eye-off-c');
+
+    // Koşul listesi
+    const rules = {
+      len:   { el: document.getElementById('rule-len'),   check: pw => pw.length >= 8 },
+      upper: { el: document.getElementById('rule-upper'), check: pw => /[A-Z]/.test(pw) },
+      lower: { el: document.getElementById('rule-lower'), check: pw => /[a-z]/.test(pw) },
+      num:   { el: document.getElementById('rule-num'),   check: pw => /[0-9]/.test(pw) },
+    };
+    document.getElementById('password').addEventListener('input', e => {
+      Object.values(rules).forEach(r => r.el.classList.toggle('met', r.check(e.target.value)));
+    });
+
+    // Form
     const form      = document.getElementById('register-form');
     const btnSub    = document.getElementById('btn-submit');
     const errBanner = document.getElementById('auth-error-banner');
@@ -123,9 +256,11 @@
     }
     function clearErrors() {
       errBanner.style.display = 'none';
-      ['name','email','password'].forEach(f => {
-        document.getElementById(`err-${f}`).textContent = '';
-        document.getElementById(f).classList.remove('error');
+      ['name','email','password','confirm-password'].forEach(f => {
+        const e = document.getElementById(`err-${f}`);
+        const i = document.getElementById(f);
+        if (e) e.textContent = '';
+        if (i) i.classList.remove('error');
       });
     }
     function fieldError(id, msg) {
@@ -140,18 +275,25 @@
       const name     = document.getElementById('name').value.trim();
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      const confirm  = document.getElementById('confirm-password').value;
       let ok = true;
 
-      if (name.length < 2)  { fieldError('name', 'İsim en az 2 karakter olmalıdır'); ok = false; }
+      if (!/^[^\s]+\s+[^\s]+/.test(name)) { fieldError('name', 'Ad ve soyad birlikte yazın (örn: Ahmet Yılmaz)'); ok = false; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Geçerli bir e-posta adresi girin'); ok = false; }
-      if (password.length < 6) { fieldError('password', 'Şifre en az 6 karakter olmalıdır'); ok = false; }
+      if (password.length < 8) {
+        fieldError('password', 'Şifre en az 8 karakter olmalıdır'); ok = false;
+      } else if (!Object.values(rules).every(r => r.check(password))) {
+        fieldError('password', 'Tüm şifre koşulları karşılanmalıdır'); ok = false;
+      }
+      if (password !== confirm) { fieldError('confirm-password', 'Şifreler eşleşmiyor'); ok = false; }
       if (!ok) return;
 
       btnSub.disabled = true;
       btnSub.textContent = 'Hesap oluşturuluyor...';
 
       try {
-        const res  = await fetch('/api/auth/register', {
+        const apiBase = window.CAMPUSBOARD_API_BASE || '/api';
+        const res  = await fetch(`${apiBase}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password }),
@@ -163,7 +305,7 @@
         }
         localStorage.setItem('cb_token', data.token);
         localStorage.setItem('cb_user',  JSON.stringify(data.user));
-        window.location.href = '/';
+        window.location.href = '/app';
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
       } finally {

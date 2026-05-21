@@ -2,9 +2,14 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Giriş — CampusBoard</title>
   <link rel="icon" type="image/svg+xml" href="assets/campusboard_app_icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap&subset=latin-ext" rel="stylesheet" />
+  <link rel="prefetch" href="/" />
+  <link rel="prefetch" href="/register" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/auth.css" />
 </head>
@@ -12,9 +17,17 @@
 
   <!-- Sol panel -->
   <div class="auth-panel-left">
-    <div class="auth-brand">
-      <img src="assets/campusboard_app_icon.svg" width="32" height="32" alt="CampusBoard" style="border-radius:8px;" />
-      <img src="assets/CampusBoard_wordmark_caps_black_cap_transparent.svg" height="44" alt="CampusBoard" style="display:block;" />
+    <div class="auth-topbar">
+      <a class="auth-back" href="/" aria-label="Ana sayfaya dön">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M12.5 5L7.5 10l5 5M8 10h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Geri</span>
+      </a>
+      <a class="auth-brand" href="/" aria-label="CampusBoard ana sayfa">
+        <img src="assets/campusboard_app_icon.svg" width="32" height="32" alt="" style="border-radius:8px;" />
+        <span class="auth-brand-text">Campus<span>Board</span></span>
+      </a>
     </div>
 
     <div class="auth-hero">
@@ -45,6 +58,14 @@
 
   <!-- Sağ panel -->
   <div class="auth-panel-right">
+    <div class="auth-mobile-hero">
+      <div class="auth-mobile-brand-row">
+        <img src="/assets/campusboard_app_icon.svg" width="30" height="30" alt="CampusBoard" style="border-radius:8px;" />
+        <span class="auth-mobile-brand-text">Campus<span>Board</span></span>
+      </div>
+      <h2 class="auth-mobile-page-title">Tekrar hoş geldin</h2>
+      <p class="auth-mobile-page-sub">Hesabına giriş yap, devam et.</p>
+    </div>
     <div class="auth-form-wrap">
       <div class="auth-form-header">
         <h1>Tekrar hoş geldin</h1>
@@ -90,11 +111,16 @@
                 <circle cx="8" cy="8" r="2" stroke="#9ca3af" stroke-width="1.5"/>
               </svg>
               <svg id="icon-eye-off" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none">
-                <path d="M2 2l12 12M6.5 6.56A2 2 0 0010.44 10.5M5.27 3.27A6.9 6.9 0 018 3c4.5 0 7 5 7 5a12.5 12.5 0 01-2.06 2.73M3.27 5.27A12.5 12.5 0 001 8s2.5 5 7 5a6.9 6.9 0 003.73-1.27" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2L2 14M9.4 6.6A2 2 0 016.6 9.4M10.73 3.27A6.9 6.9 0 018 3C3.5 3 1 8 1 8a12.5 12.5 0 002.06 2.73M12.73 5.27A12.5 12.5 0 0115 8s-2.5 5-7 5a6.9 6.9 0 01-3.73-1.27" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
           </div>
           <span class="auth-field-error" id="err-password"></span>
+        </div>
+
+        <div class="auth-remember">
+          <input type="checkbox" id="remember-me" checked />
+          <label for="remember-me">Beni hatırla</label>
         </div>
 
         <button type="submit" class="auth-submit" id="btn-submit">Giriş Yap</button>
@@ -105,7 +131,39 @@
   </div>
 
   <script>
-    if (localStorage.getItem('cb_token')) window.location.href = '/';
+    if (localStorage.getItem('cb_token') || sessionStorage.getItem('cb_token')) window.location.href = '/app';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.addEventListener('pageshow', () => {
+      document.body.classList.remove('page-transitioning');
+    });
+    window.addEventListener('pagehide', () => {
+      document.body.classList.remove('page-transitioning');
+    });
+    document.querySelectorAll('a[href]').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const url = new URL(link.href, window.location.href);
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          link.target ||
+          url.origin !== window.location.origin ||
+          url.pathname === window.location.pathname
+        ) return;
+
+        event.preventDefault();
+        if (reduceMotion) {
+          window.location.assign(url.href);
+          return;
+        }
+        requestAnimationFrame(() => {
+          document.body.classList.add('page-transitioning');
+          window.setTimeout(() => window.location.assign(url.href), 110);
+        });
+      });
+    });
 
     const togglePw  = document.getElementById('toggle-password');
     const pwInput   = document.getElementById('password');
@@ -159,7 +217,8 @@
       btnSub.textContent = 'Giriş yapılıyor...';
 
       try {
-        const res  = await fetch('/api/auth/login', {
+        const apiBase = window.CAMPUSBOARD_API_BASE || '/api';
+        const res  = await fetch(`${apiBase}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -169,9 +228,10 @@
           showError((data.errors || ['Giriş başarısız']).join(' '));
           return;
         }
-        localStorage.setItem('cb_token', data.token);
-        localStorage.setItem('cb_user',  JSON.stringify(data.user));
-        window.location.href = '/';
+        const storage = document.getElementById('remember-me').checked ? localStorage : sessionStorage;
+        storage.setItem('cb_token', data.token);
+        storage.setItem('cb_user',  JSON.stringify(data.user));
+        window.location.href = '/app';
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
       } finally {
