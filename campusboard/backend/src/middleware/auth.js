@@ -1,5 +1,3 @@
-const { AuthService } = require('../services/authService');
-
 function requireAuth(authService) {
   return (req, res, next) => {
     const header = req.headers['authorization'];
