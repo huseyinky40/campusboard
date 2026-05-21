@@ -10,6 +10,7 @@ const { ListingController } = require('./controllers/listingController');
 const { createListingsRouter } = require('./routes/listings');
 const { AuthService } = require('./services/authService');
 const { AuthController } = require('./controllers/authController');
+const { EmailService } = require('./services/emailService');
 const { createAuthRouter } = require('./routes/auth');
 const { FavoriteService } = require('./services/favoriteService');
 const { FavoriteController } = require('./controllers/favoriteController');
@@ -62,7 +63,8 @@ async function createApp(dbPath) {
   const app = express();
   const db = await createDb(dbPath);
 
-  const authService = new AuthService(db);
+  const emailService = EmailService.isConfigured() ? new EmailService() : null;
+  const authService = new AuthService(db, emailService);
   const authController = new AuthController(authService);
 
   const listingService = new ListingService(db);

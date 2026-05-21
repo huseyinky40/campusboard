@@ -13,8 +13,10 @@ const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES = '7d';
 
 class AuthService {
-  constructor(db) {
+  constructor(db, emailService = null) {
     this.db = db;
+    this.emailService = emailService;
+    this.allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || 'arel.edu.tr';
   }
 
   validateRegister(data) {
@@ -23,6 +25,8 @@ class AuthService {
       errors.push('Ad ve soyad birlikte yazın');
     if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
       errors.push('Geçerli bir e-posta adresi giriniz');
+    else if (this.emailService && !data.email.toLowerCase().endsWith('@' + this.allowedDomain))
+      errors.push(`Yalnızca @${this.allowedDomain} e-posta adresleriyle kayıt yapılabilir`);
     if (!data.password || data.password.length < 8)
       errors.push('Şifre en az 8 karakter olmalıdır');
     return errors;
@@ -36,14 +40,61 @@ class AuthService {
     if (existing) throw { type: 'validation', errors: ['Bu e-posta adresi zaten kayıtlı'] };
 
     const hash = bcrypt.hashSync(data.password, 10);
+
+    if (this.emailService) {
+      const code    = String(Math.floor(100000 + Math.random() * 900000));
+      const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      await this.db.run(
+        'INSERT INTO users (email, password, name, verify_token, verify_token_expires) VALUES (?, ?, ?, ?, ?)',
+        [data.email.toLowerCase(), hash, data.name.trim(), code, expires]
+      );
+      await this.emailService.sendVerificationCode(data.email.toLowerCase(), code);
+      return { message: 'Doğrulama kodu e-posta adresinize gönderildi' };
+    }
+
+    // Tests / dev without SMTP: auto-verify
     const result = await this.db.run(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?) RETURNING id',
-      [data.email.toLowerCase(), hash, data.name.trim()]
+      'INSERT INTO users (email, password, name, email_verified) VALUES (?, ?, ?, ?) RETURNING id',
+      [data.email.toLowerCase(), hash, data.name.trim(), 1]
     );
     const newId = result.rows[0].id;
-
     const user = await this.db.get('SELECT id, email, name, created_at FROM users WHERE id = ?', [newId]);
     return { user, token: this._sign(user) };
+  }
+
+  async verifyEmail(email, code) {
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    if (!user) throw { type: 'validation', errors: ['E-posta adresi bulunamadı'] };
+    if (user.email_verified) throw { type: 'validation', errors: ['Bu e-posta adresi zaten doğrulanmış'] };
+    if (user.verify_token !== code) throw { type: 'validation', errors: ['Doğrulama kodu hatalı'] };
+    if (new Date(user.verify_token_expires) < new Date())
+      throw { type: 'validation', errors: ['Kodun süresi dolmuş. Yeni kod talep edin.'] };
+
+    await this.db.run(
+      'UPDATE users SET email_verified = ?, verify_token = NULL, verify_token_expires = NULL WHERE id = ?',
+      [1, user.id]
+    );
+
+    const { password: _p, verify_token: _t, verify_token_expires: _e, ...safe } = user;
+    safe.email_verified = true;
+    return { user: safe, token: this._sign(safe) };
+  }
+
+  async resendVerify(email) {
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    if (!user) throw { type: 'validation', errors: ['E-posta adresi bulunamadı'] };
+    if (user.email_verified) throw { type: 'validation', errors: ['Bu e-posta adresi zaten doğrulanmış'] };
+
+    const code    = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    await this.db.run(
+      'UPDATE users SET verify_token = ?, verify_token_expires = ? WHERE id = ?',
+      [code, expires, user.id]
+    );
+    await this.emailService.sendVerificationCode(email.toLowerCase(), code);
+    return { message: 'Yeni doğrulama kodu gönderildi' };
   }
 
   async login(data) {
@@ -54,7 +105,10 @@ class AuthService {
     if (!user || !bcrypt.compareSync(data.password, user.password))
       throw { type: 'auth', errors: ['E-posta veya şifre hatalı'] };
 
-    const { password: _, ...safe } = user;
+    if (this.emailService && !user.email_verified)
+      throw { type: 'unverified', errors: ['E-posta adresinizi doğrulamanız gerekiyor'] };
+
+    const { password: _p, verify_token: _t, verify_token_expires: _e, ...safe } = user;
     return { user: safe, token: this._sign(safe) };
   }
 

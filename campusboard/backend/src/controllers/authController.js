@@ -20,6 +20,28 @@ class AuthController {
     } catch (err) {
       if (err.type === 'validation' || err.type === 'auth')
         return res.status(401).json({ errors: err.errors });
+      if (err.type === 'unverified')
+        return res.status(403).json({ type: 'unverified', errors: err.errors });
+      res.status(500).json({ error: 'Sunucu hatası' });
+    }
+  }
+
+  async verifyEmail(req, res) {
+    try {
+      const result = await this.service.verifyEmail(req.body.email, req.body.code);
+      res.json({ ...result, message: 'E-posta doğrulandı' });
+    } catch (err) {
+      if (err.type === 'validation') return res.status(400).json({ errors: err.errors });
+      res.status(500).json({ error: 'Sunucu hatası' });
+    }
+  }
+
+  async resendVerify(req, res) {
+    try {
+      const result = await this.service.resendVerify(req.body.email);
+      res.json(result);
+    } catch (err) {
+      if (err.type === 'validation') return res.status(400).json({ errors: err.errors });
       res.status(500).json({ error: 'Sunucu hatası' });
     }
   }

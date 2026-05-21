@@ -154,6 +154,56 @@ function createAuthRouter(controller, authService) {
    */
   router.put('/profile',  requireAuth(authService), (req, res) => controller.updateProfile(req, res));
 
+  /**
+   * @swagger
+   * /api/auth/verify-email:
+   *   post:
+   *     summary: E-posta doğrulama kodu doğrula
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email, code]
+   *             properties:
+   *               email: { type: string, example: "ahmet@arel.edu.tr" }
+   *               code:  { type: string, example: "123456" }
+   *     responses:
+   *       200:
+   *         description: Doğrulama başarılı — JWT döner
+   *         content:
+   *           application/json:
+   *             schema: { $ref: '#/components/schemas/AuthResponse' }
+   *       400:
+   *         description: Hatalı veya süresi dolmuş kod
+   */
+  router.post('/verify-email', (req, res) => controller.verifyEmail(req, res));
+
+  /**
+   * @swagger
+   * /api/auth/resend-verify:
+   *   post:
+   *     summary: Doğrulama kodunu yeniden gönder
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email]
+   *             properties:
+   *               email: { type: string, example: "ahmet@arel.edu.tr" }
+   *     responses:
+   *       200:
+   *         description: Yeni kod gönderildi
+   *       400:
+   *         description: E-posta bulunamadı veya zaten doğrulanmış
+   */
+  router.post('/resend-verify', (req, res) => controller.resendVerify(req, res));
+
   return router;
 }
 
