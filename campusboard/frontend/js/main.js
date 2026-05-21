@@ -1,5 +1,5 @@
 // Redirect to login if not authenticated
-if (!localStorage.getItem('cb_token') && !sessionStorage.getItem('cb_token')) {
+if (!sessionStorage.getItem('cb_token')) {
   window.location.href = '/login';
 }
 
@@ -132,7 +132,7 @@ const App = (() => {
   // ── Auth ──────────────────────────────────────────
   function initUser() {
     try {
-      const raw = localStorage.getItem('cb_user') || sessionStorage.getItem('cb_user') || '{}';
+      const raw = sessionStorage.getItem('cb_user') || '{}';
       const user = JSON.parse(raw);
       document.getElementById('user-name').textContent = user.name || '';
       const avatarEl = document.getElementById('header-avatar');
@@ -141,8 +141,6 @@ const App = (() => {
   }
 
   function logout() {
-    localStorage.removeItem('cb_token');
-    localStorage.removeItem('cb_user');
     sessionStorage.removeItem('cb_token');
     sessionStorage.removeItem('cb_user');
     window.location.href = '/login';
@@ -323,8 +321,7 @@ const App = (() => {
     try {
       const res = await Api.updateProfile(payload);
       const updated = res.data;
-      const store = localStorage.getItem('cb_token') ? localStorage : sessionStorage;
-      store.setItem('cb_user', JSON.stringify(updated));
+      sessionStorage.setItem('cb_user', JSON.stringify(updated));
       initUser();
       closeProfile();
       UI.toast('Profil güncellendi', 'success');

@@ -131,7 +131,14 @@
   </div>
 
   <script>
-    if (localStorage.getItem('cb_token') || sessionStorage.getItem('cb_token')) window.location.href = '/app';
+    if (sessionStorage.getItem('cb_token')) window.location.href = '/app';
+
+    const remembered = localStorage.getItem('cb_remember_email');
+    if (remembered) {
+      document.getElementById('email').value    = remembered;
+      document.getElementById('password').value = localStorage.getItem('cb_remember_pw') || '';
+      document.getElementById('remember-me').checked = true;
+    }
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.addEventListener('pageshow', () => {
@@ -228,9 +235,15 @@
           showError((data.errors || ['Giriş başarısız']).join(' '));
           return;
         }
-        const storage = document.getElementById('remember-me').checked ? localStorage : sessionStorage;
-        storage.setItem('cb_token', data.token);
-        storage.setItem('cb_user',  JSON.stringify(data.user));
+        if (document.getElementById('remember-me').checked) {
+          localStorage.setItem('cb_remember_email', email);
+          localStorage.setItem('cb_remember_pw',    password);
+        } else {
+          localStorage.removeItem('cb_remember_email');
+          localStorage.removeItem('cb_remember_pw');
+        }
+        sessionStorage.setItem('cb_token', data.token);
+        sessionStorage.setItem('cb_user',  JSON.stringify(data.user));
         window.location.href = '/app';
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
