@@ -91,6 +91,15 @@ async function createPgAdapter(connectionString) {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_history (
+      id         SERIAL PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      hash       TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   return {
     async get(sql, params = []) {
       const { rows } = await pool.query(toPositional(sql, params));
@@ -159,6 +168,12 @@ function createSqliteAdapter() {
       listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, listing_id)
+    );
+    CREATE TABLE IF NOT EXISTS password_history (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      hash       TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
