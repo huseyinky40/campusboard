@@ -184,7 +184,7 @@ class AuthService {
 
     await this.db.run(
       `DELETE FROM password_history WHERE user_id = ? AND id NOT IN (
-         SELECT id FROM password_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 2
+         SELECT id FROM password_history WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 2
        )`,
       [user.id, user.id]
     );
