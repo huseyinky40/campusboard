@@ -3,6 +3,10 @@ class AuthController {
     this.service = authService;
   }
 
+  universities(req, res) {
+    res.json({ data: this.service.getSupportedUniversities() });
+  }
+
   async register(req, res) {
     try {
       const result = await this.service.register(req.body);
@@ -39,6 +43,36 @@ class AuthController {
   async resendVerify(req, res) {
     try {
       const result = await this.service.resendVerify(req.body.email);
+      res.json(result);
+    } catch (err) {
+      if (err.type === 'validation') return res.status(400).json({ errors: err.errors });
+      res.status(500).json({ error: 'Sunucu hatası' });
+    }
+  }
+
+  async forgotPassword(req, res) {
+    try {
+      const result = await this.service.forgotPassword(req.body.email);
+      res.json(result);
+    } catch (err) {
+      if (err.type === 'validation') return res.status(400).json({ errors: err.errors });
+      res.status(500).json({ error: 'Sunucu hatası' });
+    }
+  }
+
+  async verifyResetCode(req, res) {
+    try {
+      const result = await this.service.verifyResetCode(req.body.email, req.body.code);
+      res.json(result);
+    } catch (err) {
+      if (err.type === 'validation') return res.status(400).json({ errors: err.errors });
+      res.status(500).json({ error: 'Sunucu hatası' });
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const result = await this.service.resetPassword(req.body.email, req.body.code, req.body.password);
       res.json(result);
     } catch (err) {
       if (err.type === 'validation') return res.status(400).json({ errors: err.errors });

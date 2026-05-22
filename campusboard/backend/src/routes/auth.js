@@ -15,13 +15,13 @@ const { requireAuth } = require('../middleware/auth');
  *       required: [name, email, password]
  *       properties:
  *         name:     { type: string, example: "Ahmet Yılmaz" }
- *         email:    { type: string, example: "ahmet@uni.edu" }
+ *         email:    { type: string, example: "ahmet@istanbularel.edu.tr" }
  *         password: { type: string, minLength: 8, example: "sifre1234" }
  *     LoginInput:
  *       type: object
  *       required: [email, password]
  *       properties:
- *         email:    { type: string, example: "ahmet@uni.edu" }
+ *         email:    { type: string, example: "ahmet@istanbularel.edu.tr" }
  *         password: { type: string, example: "sifre1234" }
  *     AuthResponse:
  *       type: object
@@ -41,6 +41,18 @@ function createAuthRouter(controller, authService) {
 
   /**
    * @swagger
+   * /api/auth/universities:
+   *   get:
+   *     summary: Desteklenen üniversiteleri listele
+   *     tags: [Auth]
+   *     responses:
+   *       200:
+   *         description: Desteklenen üniversite listesi
+   */
+  router.get('/universities', (req, res) => controller.universities(req, res));
+
+  /**
+   * @swagger
    * /api/auth/register:
    *   post:
    *     summary: Yeni kullanıcı kaydı
@@ -52,7 +64,7 @@ function createAuthRouter(controller, authService) {
    *           schema: { $ref: '#/components/schemas/RegisterInput' }
    *           example:
    *             name: "Mehmet Yıldırım"
-   *             email: "mehmet@uni.edu"
+   *             email: "mehmet@istanbularel.edu.tr"
    *             password: "sifre1234"
    *     responses:
    *       201:
@@ -77,7 +89,7 @@ function createAuthRouter(controller, authService) {
    *         application/json:
    *           schema: { $ref: '#/components/schemas/LoginInput' }
    *           example:
-   *             email: "mehmet@uni.edu"
+   *             email: "mehmet@istanbularel.edu.tr"
    *             password: "sifre1234"
    *     responses:
    *       200:
@@ -168,7 +180,7 @@ function createAuthRouter(controller, authService) {
    *             type: object
    *             required: [email, code]
    *             properties:
-   *               email: { type: string, example: "ahmet@arel.edu.tr" }
+   *               email: { type: string, example: "ahmet@istanbularel.edu.tr" }
    *               code:  { type: string, example: "123456" }
    *     responses:
    *       200:
@@ -195,7 +207,7 @@ function createAuthRouter(controller, authService) {
    *             type: object
    *             required: [email]
    *             properties:
-   *               email: { type: string, example: "ahmet@arel.edu.tr" }
+   *               email: { type: string, example: "ahmet@istanbularel.edu.tr" }
    *     responses:
    *       200:
    *         description: Yeni kod gönderildi
@@ -203,6 +215,33 @@ function createAuthRouter(controller, authService) {
    *         description: E-posta bulunamadı veya zaten doğrulanmış
    */
   router.post('/resend-verify', (req, res) => controller.resendVerify(req, res));
+
+  /**
+   * @swagger
+   * /api/auth/forgot-password:
+   *   post:
+   *     summary: Şifre sıfırlama kodu gönder
+   *     tags: [Auth]
+   */
+  router.post('/forgot-password', (req, res) => controller.forgotPassword(req, res));
+
+  /**
+   * @swagger
+   * /api/auth/verify-reset-code:
+   *   post:
+   *     summary: Şifre sıfırlama kodunu doğrula
+   *     tags: [Auth]
+   */
+  router.post('/verify-reset-code', (req, res) => controller.verifyResetCode(req, res));
+
+  /**
+   * @swagger
+   * /api/auth/reset-password:
+   *   post:
+   *     summary: Yeni şifre belirle
+   *     tags: [Auth]
+   */
+  router.post('/reset-password', (req, res) => controller.resetPassword(req, res));
 
   return router;
 }

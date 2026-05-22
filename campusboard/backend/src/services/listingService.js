@@ -12,6 +12,12 @@ class ListingService {
     this.db = db;
   }
 
+  async getUserUniversitySlug(userId) {
+    const user = await this.db.get('SELECT university_slug FROM users WHERE id = ?', [userId]);
+    if (!user) throw { type: 'auth', errors: ['Kullanıcı bulunamadı'] };
+    return user.university_slug;
+  }
+
   async runCleanup() {
     const now = new Date().toISOString().slice(0, 10);
 
@@ -61,6 +67,7 @@ class ListingService {
 
   async getAll(userId, filters = {}) {
     await this.runCleanup();
+    const universitySlug = await this.getUserUniversitySlug(userId);
 
     let query = `
       SELECT l.*, u.name AS author_name, u.avatar AS author_avatar,
@@ -68,8 +75,8 @@ class ListingService {
       FROM listings l
       JOIN users u ON u.id = l.user_id
       LEFT JOIN favorites f ON f.listing_id = l.id AND f.user_id = ?
-      WHERE 1=1`;
-    const params = [userId];
+      WHERE l.university_slug = ?`;
+    const params = [userId, universitySlug];
 
     if (filters.mine) {
       query += ' AND l.user_id = ?'; params.push(userId);
@@ -115,6 +122,7 @@ class ListingService {
 
   async getSummary(userId, filters = {}) {
     await this.runCleanup();
+    const universitySlug = await this.getUserUniversitySlug(userId);
 
     let query = `
       SELECT
@@ -128,7 +136,7 @@ class ListingService {
         SUM(CASE WHEN l.status = 'kapandi' THEN 1 ELSE 0 END) AS closed
       FROM listings l
       JOIN users u ON u.id = l.user_id
-      WHERE 1=1`;
+      WHERE l.university_slug = ?`;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -137,6 +145,7 @@ class ListingService {
     const params = [
       today.toISOString().slice(0, 10),
       weekEnd.toISOString().slice(0, 10),
+      universitySlug,
     ];
 
     if (filters.mine) {
@@ -167,14 +176,15 @@ class ListingService {
   }
 
   async getById(userId, id) {
+    const universitySlug = await this.getUserUniversitySlug(userId);
     const listing = await this.db.get(`
       SELECT l.*, u.name AS author_name, u.avatar AS author_avatar,
              CASE WHEN f.listing_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorited
       FROM listings l
       JOIN users u ON u.id = l.user_id
       LEFT JOIN favorites f ON f.listing_id = l.id AND f.user_id = ?
-      WHERE l.id = ?
-    `, [userId, id]);
+      WHERE l.id = ? AND l.university_slug = ?
+    `, [userId, id, universitySlug]);
 
     if (listing) {
       const inserted = await this.db.run(
@@ -191,27 +201,30 @@ class ListingService {
   }
 
   async getOwnedById(userId, id) {
+    const universitySlug = await this.getUserUniversitySlug(userId);
     return this.db.get(`
       SELECT l.*, u.name AS author_name
       FROM listings l
       JOIN users u ON u.id = l.user_id
-      WHERE l.id = ? AND l.user_id = ?
-    `, [id, userId]);
+      WHERE l.id = ? AND l.user_id = ? AND l.university_slug = ?
+    `, [id, userId, universitySlug]);
   }
 
   async create(userId, data) {
     const errors = this.validate(data);
     if (errors.length > 0) throw { type: 'validation', errors };
+    const universitySlug = await this.getUserUniversitySlug(userId);
 
     const result = await this.db.run(`
-      INSERT INTO listings (user_id, title, description, category, faculty, contact, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
+      INSERT INTO listings (user_id, title, description, category, faculty, university_slug, contact, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `, [
       userId,
       data.title.trim(),
       data.description.trim(),
       data.category,
       data.faculty,
+      universitySlug,
       data.contact.trim(),
       data.expires_at || null,
     ]);

@@ -112,6 +112,12 @@ function showConfirm({ title, message, okLabel = 'Onayla', variant = 'danger' })
 }
 
 const App = (() => {
+  const DEFAULT_UNIVERSITY = {
+    name: 'İstanbul Arel Üniversitesi',
+    domain: 'istanbularel.edu.tr',
+    logo: 'assets/istanbul_arel_university_logo_black.svg',
+  };
+
   const state = {
     filters: { category: '', faculty: '', status: '', search: '' },
     page: 1,
@@ -137,7 +143,24 @@ const App = (() => {
       document.getElementById('user-name').textContent = user.name || '';
       const avatarEl = document.getElementById('header-avatar');
       if (avatarEl) avatarEl.innerHTML = avatarHTML(user.name, user.avatar, 28);
+      renderCampusIdentity(user);
     } catch {}
+  }
+
+  function renderCampusIdentity(user = {}) {
+    const university = user.university || {};
+    const name = university.name || user.university_name || DEFAULT_UNIVERSITY.name;
+    const domain = university.domain || user.university_domain || DEFAULT_UNIVERSITY.domain;
+    const logo = university.logo || DEFAULT_UNIVERSITY.logo;
+
+    const nameEl = document.getElementById('campus-name');
+    const logoEl = document.getElementById('campus-logo');
+
+    if (nameEl) nameEl.textContent = name;
+    if (logoEl) {
+      logoEl.src = logo;
+      logoEl.alt = name;
+    }
   }
 
   function logout() {

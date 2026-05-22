@@ -20,6 +20,7 @@
     </a>
     <nav class="home-links" aria-label="Ana menü">
       <a href="#discover">Keşfet</a>
+      <a href="#university">Üniversiteler</a>
       <a href="#features">Kategoriler</a>
       <a href="#workflow">İşleyiş</a>
       <a href="#flow">Nasıl işler?</a>
@@ -110,6 +111,20 @@
         <span>İkinci el</span>
         <span>Kayıp/Bulundu</span>
         <span>Genel duyuru</span>
+      </div>
+    </section>
+
+    <section class="home-university" id="university">
+      <div class="home-university-copy">
+        <p class="home-kicker">Doğrulanmış öğrenci topluluğu</p>
+        <h2>Kampüs ilanları doğru kişilere ulaşır.</h2>
+        <p>
+          CampusBoard şu an <strong>@istanbularel.edu.tr</strong> uzantılı e-posta adresleriyle kullanılabilir.
+          Ders notu, etkinlik, staj ve kayıp eşya ilanları güvenilir bir öğrenci topluluğunda paylaşılır.
+        </p>
+      </div>
+      <div class="home-university-mark" aria-label="Desteklenen üniversite">
+        <img class="home-university-logo" src="/assets/istanbul_arel_university_logo_black.svg" alt="İstanbul Arel Üniversitesi" />
       </div>
     </section>
 
@@ -244,7 +259,7 @@
       });
 
       const revealItems = [
-        ...document.querySelectorAll('.home-discover-copy, .home-section-heading, .home-flow > div, .home-community > *'),
+        ...document.querySelectorAll('.home-discover-copy, .home-university-copy, .home-university-mark, .home-section-heading, .home-flow > div, .home-community > *'),
         ...document.querySelectorAll('.home-marquee span, .home-category-grid article, .home-feature-grid article, .home-flow li')
       ];
 
@@ -254,6 +269,8 @@
       });
 
       document.querySelector('.home-discover-copy')?.setAttribute('data-reveal', 'left');
+      document.querySelector('.home-university-copy')?.setAttribute('data-reveal', 'left');
+      document.querySelector('.home-university-mark')?.setAttribute('data-reveal', 'right');
       document.querySelector('.home-section-heading')?.setAttribute('data-reveal', 'left');
       document.querySelector('.home-flow > div')?.setAttribute('data-reveal', 'left');
       document.querySelectorAll('.home-community > *').forEach((item) => item.setAttribute('data-reveal', 'right'));

@@ -3,7 +3,7 @@ const { createDb }    = require('../src/db');
 
 async function makeDb() { return createDb(':memory:'); }
 
-const validUser = { name: 'Test Kullanıcı', email: 'test@uni.edu', password: 'sifre123' };
+const validUser = { name: 'Test Kullanıcı', email: 'test@istanbularel.edu.tr', password: 'sifre123' };
 
 describe('AuthService — validateRegister', () => {
   let service;
@@ -19,6 +19,10 @@ describe('AuthService — validateRegister', () => {
   test('geçersiz e-postada hata vermeli', () => {
     expect(service.validateRegister({ ...validUser, email: 'gecersiz' }))
       .toContain('Geçerli bir e-posta adresi giriniz');
+  });
+  test('izin verilmeyen e-posta uzantısında hata vermeli', () => {
+    expect(service.validateRegister({ ...validUser, email: 'test@gmail.com' }))
+      .toContain('Yalnızca desteklenen üniversite e-postalarıyla kayıt yapılabilir: @istanbularel.edu.tr');
   });
   test('kısa şifrede hata vermeli', () => {
     expect(service.validateRegister({ ...validUser, password: '123' }))
@@ -39,8 +43,9 @@ describe('AuthService — register', () => {
   });
 
   test('e-posta küçük harfe dönüştürülmeli', async () => {
-    const result = await service.register({ ...validUser, email: 'TEST@UNI.EDU' });
-    expect(result.user.email).toBe('test@uni.edu');
+    const result = await service.register({ ...validUser, email: 'TEST@ISTANBULAREL.EDU.TR' });
+    expect(result.user.email).toBe('test@istanbularel.edu.tr');
+    expect(result.user.university_slug).toBe('istanbul-arel-university');
   });
 
   test('aynı e-posta ile ikinci kayıt hata atmalı', async () => {
@@ -71,7 +76,11 @@ describe('AuthService — login', () => {
   });
 
   test('kayıtsız e-postayla giriş hata atmalı', async () => {
-    await expect(service.login({ email: 'yok@uni.edu', password: 'sifre123' })).rejects.toBeTruthy();
+    await expect(service.login({ email: 'yok@istanbularel.edu.tr', password: 'sifre123' })).rejects.toBeTruthy();
+  });
+
+  test('izin verilmeyen e-posta uzantısıyla giriş hata atmalı', async () => {
+    await expect(service.login({ email: 'test@gmail.com', password: validUser.password })).rejects.toBeTruthy();
   });
 
   test('şifresiz istekte hata atmalı', async () => {

@@ -33,7 +33,7 @@ const express = require('express');
  *           example: "Ahmet Yılmaz"
  *         contact:
  *           type: string
- *           example: "ahmet@university.edu"
+ *           example: "ahmet@istanbularel.edu.tr"
  *         created_at:
  *           type: string
  *           example: "2024-03-15 14:30:00"
@@ -63,7 +63,7 @@ const express = require('express');
  *           enum: [muhendislik, tip, hukuk, iktisat, egitim, fen-edebiyat, guzel-sanatlar, iletisim, diger]
  *         contact:
  *           type: string
- *           example: "ahmet@university.edu"
+ *           example: "ahmet@istanbularel.edu.tr"
  *         expires_at:
  *           type: string
  *           format: date-time
