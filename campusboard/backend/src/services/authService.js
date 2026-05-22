@@ -1,5 +1,13 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const {
+  SUPPORTED_UNIVERSITIES,
+  normalizeEmail,
+  findUniversityByEmail,
+  findUniversityBySlug,
+  publicUniversity,
+  supportedDomainText,
+} = require('../config/universities');
 
 function getJwtSecret() {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
@@ -11,22 +19,27 @@ function getJwtSecret() {
 
 const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES = '7d';
+const RESET_CODE_TTL_MS = 10 * 60 * 1000;
 
 class AuthService {
   constructor(db, emailService = null) {
     this.db = db;
     this.emailService = emailService;
-    this.allowedDomain = process.env.ALLOWED_EMAIL_DOMAIN || 'arel.edu.tr';
+  }
+
+  getSupportedUniversities() {
+    return SUPPORTED_UNIVERSITIES.map(publicUniversity);
   }
 
   validateRegister(data) {
     const errors = [];
+    const email = normalizeEmail(data.email);
     if (!data.name || !/^[^\s]+\s+[^\s]+/.test(data.name.trim()))
       errors.push('Ad ve soyad birlikte yazın');
-    if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       errors.push('Geçerli bir e-posta adresi giriniz');
-    else if (this.emailService && !data.email.toLowerCase().endsWith('@' + this.allowedDomain))
-      errors.push(`Yalnızca @${this.allowedDomain} e-posta adresleriyle kayıt yapılabilir`);
+    else if (!findUniversityByEmail(email))
+      errors.push(`Yalnızca desteklenen üniversite e-postalarıyla kayıt yapılabilir: ${supportedDomainText()}`);
     if (!data.password || data.password.length < 8)
       errors.push('Şifre en az 8 karakter olmalıdır');
     return errors;
@@ -36,7 +49,10 @@ class AuthService {
     const errors = this.validateRegister(data);
     if (errors.length > 0) throw { type: 'validation', errors };
 
-    const existing = await this.db.get('SELECT id FROM users WHERE email = ?', [data.email.toLowerCase()]);
+    const email = normalizeEmail(data.email);
+    const name = data.name.trim();
+    const university = findUniversityByEmail(email);
+    const existing = await this.db.get('SELECT id FROM users WHERE email = ?', [email]);
     if (existing) throw { type: 'validation', errors: ['Bu e-posta adresi zaten kayıtlı'] };
 
     const hash = bcrypt.hashSync(data.password, 10);
@@ -46,25 +62,30 @@ class AuthService {
       const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       await this.db.run(
-        'INSERT INTO users (email, password, name, verify_token, verify_token_expires) VALUES (?, ?, ?, ?, ?)',
-        [data.email.toLowerCase(), hash, data.name.trim(), code, expires]
+        `INSERT INTO users (
+          email, password, name, university_slug, university_name, university_domain, verify_token, verify_token_expires
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [email, hash, name, university.slug, university.name, university.domain, code, expires]
       );
-      await this.emailService.sendVerificationCode(data.email.toLowerCase(), code);
+      await this.emailService.sendVerificationCode(email, code);
       return { message: 'Doğrulama kodu e-posta adresinize gönderildi' };
     }
 
     // Tests / dev without SMTP: auto-verify
     const result = await this.db.run(
-      'INSERT INTO users (email, password, name, email_verified) VALUES (?, ?, ?, ?) RETURNING id',
-      [data.email.toLowerCase(), hash, data.name.trim(), 1]
+      `INSERT INTO users (
+        email, password, name, university_slug, university_name, university_domain, email_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [email, hash, name, university.slug, university.name, university.domain, 1]
     );
     const newId = result.rows[0].id;
-    const user = await this.db.get('SELECT id, email, name, created_at FROM users WHERE id = ?', [newId]);
+    const user = await this.getSessionUser(newId);
     return { user, token: this._sign(user) };
   }
 
   async verifyEmail(email, code) {
-    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    const normalizedEmail = normalizeEmail(email);
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
     if (!user) throw { type: 'validation', errors: ['E-posta adresi bulunamadı'] };
     if (user.email_verified) throw { type: 'validation', errors: ['Bu e-posta adresi zaten doğrulanmış'] };
     if (user.verify_token !== code) throw { type: 'validation', errors: ['Doğrulama kodu hatalı'] };
@@ -76,13 +97,13 @@ class AuthService {
       [1, user.id]
     );
 
-    const { password: _p, verify_token: _t, verify_token_expires: _e, ...safe } = user;
-    safe.email_verified = true;
-    return { user: safe, token: this._sign(safe) };
+    const verified = await this.getSessionUser(user.id);
+    return { user: verified, token: this._sign(verified) };
   }
 
   async resendVerify(email) {
-    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [email.toLowerCase()]);
+    const normalizedEmail = normalizeEmail(email);
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
     if (!user) throw { type: 'validation', errors: ['E-posta adresi bulunamadı'] };
     if (user.email_verified) throw { type: 'validation', errors: ['Bu e-posta adresi zaten doğrulanmış'] };
 
@@ -93,32 +114,104 @@ class AuthService {
       'UPDATE users SET verify_token = ?, verify_token_expires = ? WHERE id = ?',
       [code, expires, user.id]
     );
-    await this.emailService.sendVerificationCode(email.toLowerCase(), code);
+    await this.emailService.sendVerificationCode(normalizedEmail, code);
     return { message: 'Yeni doğrulama kodu gönderildi' };
+  }
+
+  async forgotPassword(email) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail))
+      throw { type: 'validation', errors: ['Geçerli bir e-posta adresi giriniz'] };
+    if (!findUniversityByEmail(normalizedEmail))
+      throw { type: 'validation', errors: [`Yalnızca desteklenen üniversite e-postaları kullanılabilir: ${supportedDomainText()}`] };
+
+    const generic = { message: 'Şifre sıfırlama kodu e-posta adresinize gönderildi' };
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
+    if (!user) return generic;
+
+    if (!this.emailService) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Email service is not configured');
+      const devCode = this._generateResetCode();
+      const devHash = bcrypt.hashSync(devCode, 10);
+      await this.db.run(
+        'UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?',
+        [devHash, new Date(Date.now() + RESET_CODE_TTL_MS).toISOString(), user.id]
+      );
+      return { ...generic, devCode };
+    }
+
+    const code = this._generateResetCode();
+    const hash = bcrypt.hashSync(code, 10);
+    const expires = new Date(Date.now() + RESET_CODE_TTL_MS).toISOString();
+
+    await this.db.run(
+      'UPDATE users SET reset_token_hash = ?, reset_token_expires = ? WHERE id = ?',
+      [hash, expires, user.id]
+    );
+    await this.emailService.sendPasswordResetCode(normalizedEmail, code, user.name);
+    return generic;
+  }
+
+  async verifyResetCode(email, code) {
+    const user = await this._getValidResetUser(email, code);
+    return { message: 'Kod doğrulandı', email: user.email };
+  }
+
+  async resetPassword(email, code, password) {
+    if (!password || password.length < 8)
+      throw { type: 'validation', errors: ['Şifre en az 8 karakter olmalıdır'] };
+
+    const user = await this._getValidResetUser(email, code);
+    const hash = bcrypt.hashSync(password, 10);
+
+    await this.db.run(
+      `UPDATE users
+       SET password = ?, reset_token_hash = NULL, reset_token_expires = NULL
+       WHERE id = ?`,
+      [hash, user.id]
+    );
+
+    return { message: 'Şifre güncellendi' };
   }
 
   async login(data) {
     if (!data.email || !data.password)
       throw { type: 'validation', errors: ['E-posta ve şifre zorunludur'] };
 
-    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [data.email.toLowerCase()]);
+    const email = normalizeEmail(data.email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !findUniversityByEmail(email))
+      throw { type: 'auth', errors: ['E-posta veya şifre hatalı'] };
+
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [email]);
     if (!user || !bcrypt.compareSync(data.password, user.password))
       throw { type: 'auth', errors: ['E-posta veya şifre hatalı'] };
 
     if (this.emailService && !user.email_verified)
       throw { type: 'unverified', errors: ['E-posta adresinizi doğrulamanız gerekiyor'] };
 
-    const { password: _p, verify_token: _t, verify_token_expires: _e, ...safe } = user;
+    const safe = this._publicUser(user);
     return { user: safe, token: this._sign(safe) };
   }
 
   async getProfile(userId) {
     const user = await this.db.get(
-      'SELECT id, email, name, department, faculty, phone, student_no, avatar, created_at FROM users WHERE id = ?',
+      `SELECT id, email, name, department, faculty, phone, student_no, avatar,
+              university_slug, university_name, university_domain, created_at
+       FROM users WHERE id = ?`,
       [userId]
     );
     if (!user) throw { type: 'not_found', errors: ['Kullanıcı bulunamadı'] };
-    return user;
+    return this._publicUser(user);
+  }
+
+  async getSessionUser(userId) {
+    const user = await this.db.get(
+      `SELECT id, email, name, department, faculty, phone, student_no, avatar,
+              university_slug, university_name, university_domain, created_at
+       FROM users WHERE id = ?`,
+      [userId]
+    );
+    return user ? this._publicUser(user) : null;
   }
 
   async updateProfile(userId, data) {
@@ -156,7 +249,63 @@ class AuthService {
   }
 
   _sign(user) {
-    return jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    return jwt.sign({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      university_slug: user.university_slug,
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+  }
+
+  _generateResetCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    let code = '';
+    for (let i = 0; i < 5; i += 1) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return code;
+  }
+
+  async _getValidResetUser(email, code) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !code || String(code).length !== 5)
+      throw { type: 'validation', errors: ['Kod hatalı veya süresi dolmuş'] };
+
+    const user = await this.db.get('SELECT * FROM users WHERE email = ?', [normalizedEmail]);
+    if (!user || !user.reset_token_hash || !user.reset_token_expires)
+      throw { type: 'validation', errors: ['Kod hatalı veya süresi dolmuş'] };
+    if (new Date(user.reset_token_expires) < new Date())
+      throw { type: 'validation', errors: ['Kodun süresi dolmuş. Yeni kod talep edin.'] };
+    if (!bcrypt.compareSync(String(code), user.reset_token_hash))
+      throw { type: 'validation', errors: ['Kod hatalı veya süresi dolmuş'] };
+
+    return user;
+  }
+
+  _publicUser(user) {
+    const university = findUniversityBySlug(user.university_slug) || {
+      slug: user.university_slug,
+      name: user.university_name,
+      shortName: user.university_name,
+      domain: user.university_domain,
+      logo: null,
+    };
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      department: user.department || null,
+      faculty: user.faculty || null,
+      phone: user.phone || null,
+      student_no: user.student_no || null,
+      avatar: user.avatar || null,
+      university_slug: university.slug,
+      university_name: university.name,
+      university_domain: university.domain,
+      university: publicUniversity(university),
+      created_at: user.created_at,
+    };
   }
 }
 

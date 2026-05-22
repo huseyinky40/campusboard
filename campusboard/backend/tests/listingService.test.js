@@ -11,6 +11,15 @@ async function seedUser(db, email = 'test@test.com', name = 'Test') {
   return result.rows[0].id;
 }
 
+async function seedExternalUniversityUser(db, email = 'external@test.com', name = 'External') {
+  const result = await db.run(
+    `INSERT INTO users (email, password, name, university_slug, university_name, university_domain)
+     VALUES (?, 'hash', ?, 'external-university', 'External Üniversitesi', 'external.edu.tr') RETURNING id`,
+    [email, name]
+  );
+  return result.rows[0].id;
+}
+
 const validData = {
   title: 'Test İlanı Başlığı',
   description: 'Bu bir test açıklamasıdır, yeterince uzun.',
@@ -71,7 +80,7 @@ describe('ListingService — CRUD', () => {
   test('olmayan id için getById null dönmeli', async () => {
     expect(await service.getById(userId, 9999)).toBeNull();
   });
-  test('herhangi bir kullanıcı başkasının ilanını görüntüleyebilmeli', async () => {
+  test('aynı üniversitedeki kullanıcı başkasının ilanını görüntüleyebilmeli', async () => {
     const created = await service.create(userId, validData);
     const otherId = (await db.run(
       "INSERT INTO users (email, password, name) VALUES ('other@test.com', 'hash', 'Other') RETURNING id",
@@ -80,6 +89,11 @@ describe('ListingService — CRUD', () => {
     const listing = await service.getById(otherId, created.id);
     expect(listing).not.toBeNull();
     expect(listing.id).toBe(created.id);
+  });
+  test('farklı üniversitedeki kullanıcı başka kampüs ilanını görüntüleyememeli', async () => {
+    const created = await service.create(userId, validData);
+    const externalId = await seedExternalUniversityUser(db);
+    expect(await service.getById(externalId, created.id)).toBeNull();
   });
   test('ilan güncellenebilmeli', async () => {
     const created = await service.create(userId, validData);
@@ -137,12 +151,21 @@ describe('ListingService — getAll filtreleme', () => {
   test('birden fazla filtre birlikte çalışmalı', async () => {
     expect((await service.getAll(userId, { faculty: 'muhendislik', category: 'staj' })).data).toHaveLength(1);
   });
-  test('tüm ilanlar her kullanıcıya görünmeli (bulletin board)', async () => {
-    expect((await service.getAll(userId + 1)).data).toHaveLength(3);
+  test('tüm ilanlar aynı üniversitedeki her kullanıcıya görünmeli', async () => {
+    const db = service.db;
+    const otherId = await seedUser(db, 'same-campus@test.com', 'Same Campus');
+    expect((await service.getAll(otherId)).data).toHaveLength(3);
+  });
+  test('farklı üniversite kullanıcısı bu kampüs ilanlarını görmemeli', async () => {
+    const db = service.db;
+    const externalId = await seedExternalUniversityUser(db);
+    expect((await service.getAll(externalId)).data).toHaveLength(0);
   });
   test('mine:true yalnızca kendi ilanlarını getirmeli', async () => {
+    const db = service.db;
+    const otherId = await seedUser(db, 'same-campus-mine@test.com', 'Same Campus');
     expect((await service.getAll(userId, { mine: true })).data).toHaveLength(3);
-    expect((await service.getAll(userId + 1, { mine: true })).data).toHaveLength(0);
+    expect((await service.getAll(otherId, { mine: true })).data).toHaveLength(0);
   });
   test('pagination metadata dönmeli', async () => {
     const r = await service.getAll(userId, { page: 1, limit: 2 });

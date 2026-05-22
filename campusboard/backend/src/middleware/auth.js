@@ -1,11 +1,14 @@
 function requireAuth(authService) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const header = req.headers['authorization'];
     if (!header || !header.startsWith('Bearer '))
       return res.status(401).json({ error: 'Kimlik doğrulama gerekli' });
 
     try {
-      req.user = authService.verify(header.slice(7));
+      const payload = authService.verify(header.slice(7));
+      const user = await authService.getSessionUser(payload.id);
+      if (!user) return res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
+      req.user = user;
       next();
     } catch {
       res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });

@@ -102,18 +102,16 @@ async function createApp(dbPath) {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
       return res.status(400).json({
         error: 'Geçersiz JSON formatı',
-        message: 'İstek gövdesindeki string değerleri çift tırnak içine alın. Örnek: "email": "mehmet@uni.edu"',
+        message: 'İstek gövdesindeki string değerleri çift tırnak içine alın. Örnek: "email": "mehmet@istanbularel.edu.tr"',
       });
     }
     next(err);
   });
-  if (process.env.NODE_ENV !== 'production') {
-    app.get('/favicon.ico', (req, res) => {
-      res.type('image/svg+xml');
-      res.sendFile(path.join(__dirname, '../../frontend/assets/campusboard_app_icon.svg'));
-    });
-    app.use(express.static(path.join(__dirname, '../../frontend')));
-  }
+  app.get('/favicon.ico', (req, res) => {
+    res.type('image/svg+xml');
+    res.sendFile(path.join(__dirname, '../../frontend/assets/campusboard_app_icon.svg'));
+  });
+  app.use(express.static(path.join(__dirname, '../../frontend')));
 
   if (process.env.NODE_ENV !== 'production') {
     const swaggerSpec = swaggerJsdoc(swaggerOptions);
@@ -133,12 +131,13 @@ async function createApp(dbPath) {
   app.get('/api/categories', (req, res) => listingController.getCategories(req, res));
   app.get('/api/faculties',  (req, res) => listingController.getFaculties(req, res));
 
-  if (process.env.NODE_ENV !== 'production') {
-    app.get('/login',    (req, res) => res.sendFile(path.join(__dirname, '../../frontend/login.html')));
-    app.get('/register', (req, res) => res.sendFile(path.join(__dirname, '../../frontend/register.html')));
-    app.get('/app',      (req, res) => res.sendFile(path.join(__dirname, '../../frontend/app.html')));
-    app.get('*',         (req, res) => res.sendFile(path.join(__dirname, '../../frontend/index.html')));
-  }
+  const frontendDir = path.join(__dirname, '../../frontend');
+  app.get('/login',           (req, res) => res.sendFile(path.join(frontendDir, 'login.html')));
+  app.get('/register',        (req, res) => res.sendFile(path.join(frontendDir, 'register.html')));
+  app.get('/forgot-password', (req, res) => res.sendFile(path.join(frontendDir, 'forgot-password.html')));
+  app.get('/reset-password',  (req, res) => res.sendFile(path.join(frontendDir, 'reset-password.html')));
+  app.get('/app',             (req, res) => res.sendFile(path.join(frontendDir, 'app.html')));
+  app.get('*',                (req, res) => res.sendFile(path.join(frontendDir, 'index.html')));
 
   return app;
 }

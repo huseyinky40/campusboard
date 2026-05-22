@@ -2,8 +2,9 @@ const { Pool } = require('pg');
 const Database = require('better-sqlite3');
 
 async function createDb(connectionString) {
-  if (connectionString === ':memory:') return createSqliteAdapter();
-  return createPgAdapter(connectionString || process.env.DATABASE_URL);
+  const conn = connectionString || process.env.DATABASE_URL;
+  if (conn === ':memory:') return createSqliteAdapter();
+  return createPgAdapter(conn);
 }
 
 // ── PostgreSQL adapter ────────────────────────────────────────────────────────
@@ -30,9 +31,14 @@ async function createPgAdapter(connectionString) {
       faculty              TEXT,
       phone                TEXT,
       student_no           TEXT,
+      university_slug      TEXT NOT NULL DEFAULT 'istanbul-arel-university',
+      university_name      TEXT NOT NULL DEFAULT 'İstanbul Arel Üniversitesi',
+      university_domain    TEXT NOT NULL DEFAULT 'istanbularel.edu.tr',
       email_verified       BOOLEAN NOT NULL DEFAULT FALSE,
       verify_token         TEXT,
       verify_token_expires TIMESTAMPTZ,
+      reset_token_hash     TEXT,
+      reset_token_expires  TIMESTAMPTZ,
       created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -40,6 +46,11 @@ async function createPgAdapter(connectionString) {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified       BOOLEAN     NOT NULL DEFAULT FALSE`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_token         TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_token_expires TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash     TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires  TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_slug      TEXT        NOT NULL DEFAULT 'istanbul-arel-university'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_name      TEXT        NOT NULL DEFAULT 'İstanbul Arel Üniversitesi'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_domain    TEXT        NOT NULL DEFAULT 'istanbularel.edu.tr'`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS listings (
@@ -49,6 +60,7 @@ async function createPgAdapter(connectionString) {
       description TEXT NOT NULL,
       category    TEXT NOT NULL,
       faculty     TEXT NOT NULL,
+      university_slug TEXT NOT NULL DEFAULT 'istanbul-arel-university',
       status      TEXT NOT NULL DEFAULT 'aktif',
       contact     TEXT NOT NULL,
       expires_at  TIMESTAMPTZ,
@@ -58,6 +70,9 @@ async function createPgAdapter(connectionString) {
       updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS university_slug TEXT NOT NULL DEFAULT 'istanbul-arel-university'`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_university_slug ON users(university_slug)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_listings_university_slug ON listings(university_slug)`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS listing_views (
@@ -108,9 +123,14 @@ function createSqliteAdapter() {
       faculty              TEXT,
       phone                TEXT,
       student_no           TEXT,
+      university_slug      TEXT NOT NULL DEFAULT 'istanbul-arel-university',
+      university_name      TEXT NOT NULL DEFAULT 'İstanbul Arel Üniversitesi',
+      university_domain    TEXT NOT NULL DEFAULT 'istanbularel.edu.tr',
       email_verified       INTEGER NOT NULL DEFAULT 0,
       verify_token         TEXT,
       verify_token_expires TEXT,
+      reset_token_hash     TEXT,
+      reset_token_expires  TEXT,
       created_at           TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS listings (
@@ -120,6 +140,7 @@ function createSqliteAdapter() {
       description TEXT NOT NULL,
       category    TEXT NOT NULL,
       faculty     TEXT NOT NULL,
+      university_slug TEXT NOT NULL DEFAULT 'istanbul-arel-university',
       status      TEXT NOT NULL DEFAULT 'aktif',
       contact     TEXT NOT NULL,
       expires_at  TEXT,

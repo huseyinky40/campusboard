@@ -72,6 +72,14 @@
         <p>Devam etmek için giriş yap.</p>
       </div>
 
+      <div class="auth-domain-notice" aria-label="Üniversite e-posta kuralı">
+        <img src="/assets/istanbul_arel_university_logo_black.svg" width="46" height="46" alt="" />
+        <div>
+          <span>İstanbul Arel Üniversitesi</span>
+          <strong>Şu an @istanbularel.edu.tr ile giriş yapılabilir.</strong>
+        </div>
+      </div>
+
       <div id="auth-error-banner" class="auth-error-banner" style="display:none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="7" stroke="#ef4444" stroke-width="1.5"/>
@@ -80,11 +88,29 @@
         <span id="auth-error-text"></span>
       </div>
 
-      <div id="unverified-banner" style="display:none;background:#fefce8;border:1px solid #fde047;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#713f12;">
-        <p style="margin:0 0 8px;font-weight:600;">E-posta adresiniz doğrulanmamış.</p>
-        <p style="margin:0 0 10px;">Kayıt sırasında gönderilen kodu girerek hesabınızı etkinleştirin.</p>
-        <button id="btn-resend-login" type="button" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">Doğrulama kodu gönder</button>
-        <span id="resend-login-status" style="margin-left:10px;font-size:12px;color:#64748b;"></span>
+      <div id="auth-success-banner" class="auth-success-banner" style="display:none">
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M4.8 8.2l2.1 2.1 4.3-4.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="auth-success-text"></span>
+      </div>
+
+      <div id="unverified-banner" class="auth-unverified-banner" style="display:none">
+        <div class="auth-unverified-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M10 2.5l6.5 3v4.7c0 3.7-2.5 6.2-6.5 7.3-4-1.1-6.5-3.6-6.5-7.3V5.5l6.5-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+            <path d="M10 7v3.4M10 13h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <p>E-posta adresin doğrulanmamış.</p>
+          <small>E-posta adresini etkinleştirmek için doğrulama kodunu tekrar gönderebilirsin.</small>
+          <div class="auth-inline-row">
+            <button id="btn-resend-login" class="auth-inline-action" type="button">Doğrulama kodu gönder</button>
+            <span id="resend-login-status" class="auth-inline-status"></span>
+          </div>
+        </div>
       </div>
 
       <form id="login-form" novalidate>
@@ -97,7 +123,7 @@
                 <path d="M1 6l7 4 7-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </span>
-            <input class="auth-input" type="email" id="email" placeholder="ornek@uni.edu" autocomplete="email" />
+            <input class="auth-input" type="email" id="email" placeholder="ornek@istanbularel.edu.tr" autocomplete="email" />
           </div>
           <span class="auth-field-error" id="err-email"></span>
         </div>
@@ -122,7 +148,10 @@
               </svg>
             </button>
           </div>
-          <span class="auth-field-error" id="err-password"></span>
+          <div style="display:flex;justify-content:space-between;align-items:center;min-height:1rem;">
+            <span class="auth-field-error" id="err-password" style="min-height:0;"></span>
+            <a href="/forgot-password" style="font-size:.83rem;font-weight:900;color:#6366f1;text-decoration:none;flex-shrink:0;margin-left:auto;" onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#6366f1'">Şifremi unuttum</a>
+          </div>
         </div>
 
         <div class="auth-remember">
@@ -137,15 +166,22 @@
     </div>
   </div>
 
+  <div id="login-transition" class="auth-route-transition" aria-hidden="true">
+    <div class="auth-route-card">
+      <img src="/assets/campusboard_app_icon.svg" width="40" height="40" alt="" />
+      <span>CampusBoard açılıyor</span>
+    </div>
+  </div>
+
   <script>
     if (sessionStorage.getItem('cb_token')) window.location.href = '/app';
 
     const remembered = localStorage.getItem('cb_remember_email');
     if (remembered) {
       document.getElementById('email').value    = remembered;
-      document.getElementById('password').value = localStorage.getItem('cb_remember_pw') || '';
       document.getElementById('remember-me').checked = true;
     }
+    localStorage.removeItem('cb_remember_pw');
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.addEventListener('pageshow', () => {
@@ -179,6 +215,18 @@
       });
     });
 
+    function blockPasswordClipboard(...ids) {
+      ids.forEach((id) => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        ['copy', 'cut', 'paste', 'drop'].forEach((eventName) => {
+          input.addEventListener(eventName, (event) => event.preventDefault());
+        });
+        input.addEventListener('contextmenu', (event) => event.preventDefault());
+      });
+    }
+    blockPasswordClipboard('password');
+
     const togglePw  = document.getElementById('toggle-password');
     const pwInput   = document.getElementById('password');
     const iconEye   = document.getElementById('icon-eye');
@@ -194,10 +242,26 @@
     const btnSub   = document.getElementById('btn-submit');
     const errBanner = document.getElementById('auth-error-banner');
     const errText   = document.getElementById('auth-error-text');
+    const successBanner = document.getElementById('auth-success-banner');
+    const successText   = document.getElementById('auth-success-text');
     const unverifiedBanner = document.getElementById('unverified-banner');
+    const routeTransition = document.getElementById('login-transition');
     let pendingEmail = '';
+    let isNavigating = false;
+
+    const registerSuccess = sessionStorage.getItem('cb_register_success');
+    const registerEmail = sessionStorage.getItem('cb_register_email');
+    if (registerSuccess || new URLSearchParams(window.location.search).get('registered')) {
+      successText.textContent = registerSuccess || 'Hesabın oluşturuldu. Giriş yaparak devam edebilirsin.';
+      successBanner.style.display = 'flex';
+      if (registerEmail) document.getElementById('email').value = registerEmail;
+      sessionStorage.removeItem('cb_register_success');
+      sessionStorage.removeItem('cb_register_email');
+      window.history.replaceState({}, '', '/login');
+    }
 
     function showError(msg) {
+      successBanner.style.display = 'none';
       unverifiedBanner.style.display = 'none';
       errText.textContent = msg;
       errBanner.style.display = 'flex';
@@ -205,6 +269,7 @@
     function clearErrors() {
       errBanner.style.display = 'none';
       unverifiedBanner.style.display = 'none';
+      successBanner.style.display = 'none';
       ['email','password'].forEach(f => {
         document.getElementById(`err-${f}`).textContent = '';
         document.getElementById(f).classList.remove('error');
@@ -253,17 +318,28 @@
         }
         if (document.getElementById('remember-me').checked) {
           localStorage.setItem('cb_remember_email', email);
-          localStorage.setItem('cb_remember_pw',    password);
+          localStorage.removeItem('cb_remember_pw');
         } else {
           localStorage.removeItem('cb_remember_email');
           localStorage.removeItem('cb_remember_pw');
         }
         sessionStorage.setItem('cb_token', data.token);
         sessionStorage.setItem('cb_user',  JSON.stringify(data.user));
-        window.location.href = '/app';
+        isNavigating = true;
+        btnSub.textContent = 'Pano hazırlanıyor...';
+        if (reduceMotion) {
+          window.location.href = '/app';
+          return;
+        }
+        document.body.classList.add('page-transitioning');
+        routeTransition.classList.add('active');
+        window.setTimeout(() => {
+          window.location.href = '/app';
+        }, 520);
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
       } finally {
+        if (isNavigating) return;
         btnSub.disabled = false;
         btnSub.textContent = 'Giriş Yap';
       }

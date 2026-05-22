@@ -72,12 +72,28 @@
         <p>Ücretsiz hesap oluştur, hemen başla.</p>
       </div>
 
+      <div class="auth-domain-notice" aria-label="Üniversite e-posta kuralı">
+        <img src="/assets/istanbul_arel_university_logo_black.svg" width="46" height="46" alt="" />
+        <div>
+          <span>İstanbul Arel Üniversitesi</span>
+          <strong>Şu an @istanbularel.edu.tr ile kayıt alınır.</strong>
+        </div>
+      </div>
+
       <div id="auth-error-banner" class="auth-error-banner" style="display:none">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="7" stroke="#ef4444" stroke-width="1.5"/>
           <path d="M8 5v3M8 10.5v.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <span id="auth-error-text"></span>
+      </div>
+
+      <div id="auth-success-banner" class="auth-success-banner" style="display:none">
+        <svg width="17" height="17" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M4.8 8.2l2.1 2.1 4.3-4.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="auth-success-text"></span>
       </div>
 
       <form id="register-form" novalidate>
@@ -104,9 +120,9 @@
                 <path d="M1 6l7 4 7-4" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </span>
-            <input class="auth-input" type="email" id="email" placeholder="ornek@arel.edu.tr" autocomplete="email" />
+            <input class="auth-input" type="email" id="email" placeholder="ornek@istanbularel.edu.tr" autocomplete="email" />
           </div>
-          <span class="auth-field-hint" id="hint-email" style="font-size:12px;color:#94a3b8;margin-top:4px;display:block;">Yalnızca @arel.edu.tr e-posta adresleriyle kayıt yapılabilir</span>
+          <span class="auth-field-hint" id="hint-email" hidden></span>
           <span class="auth-field-error" id="err-email"></span>
         </div>
 
@@ -182,10 +198,17 @@
       <p class="auth-switch">Zaten hesabın var mı? <a href="/login">Giriş Yap</a></p>
 
       <!-- E-posta doğrulama adımı (kayıt sonrası gösterilir) -->
-      <div id="verify-section" style="display:none">
+      <div id="verify-section" class="auth-verify-section" style="display:none">
         <div class="auth-form-header">
           <h1>E-postanı Doğrula</h1>
           <p id="verify-desc">E-posta adresine 6 haneli bir kod gönderdik.</p>
+        </div>
+        <div class="auth-verify-intro">
+          <img src="/assets/istanbul_arel_university_logo_black.svg" width="42" height="42" alt="" />
+          <div>
+            <span>E-posta doğrulaması</span>
+            <strong>Kodunu girince panoya yönlendirileceksin.</strong>
+          </div>
         </div>
         <div id="verify-error-banner" class="auth-error-banner" style="display:none">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -198,15 +221,15 @@
           <div class="auth-field">
             <label for="verify-code">Doğrulama Kodu</label>
             <div class="auth-input-wrap">
-              <input class="auth-input" type="text" id="verify-code" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="letter-spacing:6px;font-size:20px;font-weight:700;text-align:center;" />
+              <input class="auth-input auth-code-input" type="text" id="verify-code" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
             </div>
             <span class="auth-field-error" id="err-verify-code"></span>
           </div>
           <button type="submit" class="auth-submit" id="btn-verify">Doğrula</button>
         </form>
-        <p style="text-align:center;margin-top:14px;font-size:13px;color:#64748b;">
+        <p class="auth-resend-row">
           Kod gelmedi mi?
-          <button id="btn-resend" type="button" style="background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:13px;padding:0;">Yeniden gönder</button>
+          <button id="btn-resend" class="auth-text-button" type="button">Yeniden gönder</button>
         </p>
       </div>
     </div>
@@ -247,6 +270,18 @@
       });
     });
 
+    function blockPasswordClipboard(...ids) {
+      ids.forEach((id) => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        ['copy', 'cut', 'paste', 'drop'].forEach((eventName) => {
+          input.addEventListener(eventName, (event) => event.preventDefault());
+        });
+        input.addEventListener('contextmenu', (event) => event.preventDefault());
+      });
+    }
+    blockPasswordClipboard('password', 'confirm-password');
+
     // Şifre göster/gizle
     function setupToggle(btnId, inputId, eyeId, eyeOffId) {
       const btn = document.getElementById(btnId);
@@ -279,13 +314,22 @@
     const btnSub    = document.getElementById('btn-submit');
     const errBanner = document.getElementById('auth-error-banner');
     const errText   = document.getElementById('auth-error-text');
+    const successBanner = document.getElementById('auth-success-banner');
+    const successText   = document.getElementById('auth-success-text');
 
     function showError(msg) {
+      successBanner.style.display = 'none';
       errText.textContent = msg;
       errBanner.style.display = 'flex';
     }
+    function showSuccess(msg) {
+      errBanner.style.display = 'none';
+      successText.textContent = msg;
+      successBanner.style.display = 'flex';
+    }
     function clearErrors() {
       errBanner.style.display = 'none';
+      successBanner.style.display = 'none';
       ['name','email','password','confirm-password'].forEach(f => {
         const e = document.getElementById(`err-${f}`);
         const i = document.getElementById(f);
@@ -296,6 +340,19 @@
     function fieldError(id, msg) {
       document.getElementById(`err-${id}`).textContent = msg;
       document.getElementById(id).classList.add('error');
+    }
+    function redirectToLogin(email, message) {
+      sessionStorage.removeItem('cb_token');
+      sessionStorage.removeItem('cb_user');
+      sessionStorage.setItem('cb_register_success', message);
+      sessionStorage.setItem('cb_register_email', email);
+      showSuccess(message + ' Giriş ekranına yönlendiriliyorsun.');
+      document.getElementById('register-form').style.display = 'none';
+      const switchEl = document.querySelector('.auth-switch');
+      if (switchEl) switchEl.style.display = 'none';
+      window.setTimeout(() => {
+        window.location.href = '/login?registered=1';
+      }, 1300);
     }
 
     let pendingEmail = '';
@@ -311,7 +368,13 @@
       let ok = true;
 
       if (!/^[^\s]+\s+[^\s]+/.test(name)) { fieldError('name', 'Ad ve soyad birlikte yazın (örn: Ahmet Yılmaz)'); ok = false; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldError('email', 'Geçerli bir e-posta adresi girin'); ok = false; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        fieldError('email', 'Geçerli bir e-posta adresi girin');
+        ok = false;
+      } else if (!email.toLowerCase().endsWith('@istanbularel.edu.tr')) {
+        fieldError('email', 'Yalnızca @istanbularel.edu.tr e-posta adresleriyle kayıt yapılabilir');
+        ok = false;
+      }
       if (password.length < 8) {
         fieldError('password', 'Şifre en az 8 karakter olmalıdır'); ok = false;
       } else if (!Object.values(rules).every(r => r.check(password))) {
@@ -336,17 +399,28 @@
           return;
         }
         if (data.token) {
-          sessionStorage.setItem('cb_token', data.token);
-          sessionStorage.setItem('cb_user',  JSON.stringify(data.user));
-          window.location.href = '/app';
+          redirectToLogin(email, 'Hesabın oluşturuldu.');
         } else {
           pendingEmail = email;
-          document.getElementById('register-form').style.display = 'none';
-          document.querySelector('.auth-switch').style.display = 'none';
           document.getElementById('verify-desc').textContent =
             email + ' adresine 6 haneli bir kod gönderdik.';
-          document.getElementById('verify-section').style.display = 'block';
-          document.getElementById('verify-code').focus();
+          const registerForm = document.getElementById('register-form');
+          const switchEl = document.querySelector('.auth-switch');
+          if (reduceMotion) {
+            registerForm.style.display = 'none';
+            switchEl.style.display = 'none';
+            document.getElementById('verify-section').style.display = 'block';
+            document.getElementById('verify-code').focus();
+          } else {
+            registerForm.classList.add('auth-form-exit');
+            window.setTimeout(() => {
+              registerForm.style.display = 'none';
+              registerForm.classList.remove('auth-form-exit');
+              switchEl.style.display = 'none';
+              document.getElementById('verify-section').style.display = 'block';
+              document.getElementById('verify-code').focus();
+            }, 190);
+          }
         }
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
@@ -389,9 +463,7 @@
           showVerifyError((data.errors || ['Doğrulama başarısız']).join(' '));
           return;
         }
-        sessionStorage.setItem('cb_token', data.token);
-        sessionStorage.setItem('cb_user',  JSON.stringify(data.user));
-        window.location.href = '/app';
+        redirectToLogin(pendingEmail, 'E-posta adresin doğrulandı.');
       } catch {
         showVerifyError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
       } finally {

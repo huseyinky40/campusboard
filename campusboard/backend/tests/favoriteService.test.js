@@ -12,6 +12,15 @@ async function seedUser(db, email = 'test@test.com', name = 'Test') {
   return result.rows[0].id;
 }
 
+async function seedExternalUniversityUser(db, email = 'external@test.com', name = 'External') {
+  const result = await db.run(
+    `INSERT INTO users (email, password, name, university_slug, university_name, university_domain)
+     VALUES (?, 'hash', ?, 'external-university', 'External Üniversitesi', 'external.edu.tr') RETURNING id`,
+    [email, name]
+  );
+  return result.rows[0].id;
+}
+
 const validListing = {
   title: 'Test İlanı Başlığı',
   description: 'Bu bir test açıklamasıdır, yeterince uzun.',
@@ -60,6 +69,11 @@ describe('FavoriteService — toggle', () => {
     const r2 = await favService.toggle(userId2, listingId);
     expect(r1).toEqual({ favorited: true });
     expect(r2).toEqual({ favorited: true });
+  });
+
+  test('farklı üniversite kullanıcısı başka kampüs ilanını favorileyememeli', async () => {
+    const externalId = await seedExternalUniversityUser(db);
+    expect(await favService.toggle(externalId, listingId)).toBeNull();
   });
 });
 
