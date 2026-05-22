@@ -5,10 +5,18 @@
   navigation: auto;
 }
 
-::view-transition-old(root),
+@keyframes cb-page-out {
+  to { opacity: 0; transform: translateY(-7px) scale(.994); filter: blur(3px); }
+}
+@keyframes cb-page-in {
+  from { opacity: 0; transform: translateY(10px); filter: blur(3px); }
+}
+
+::view-transition-old(root) {
+  animation: .18s cubic-bezier(.4, 0, 1, 1) both cb-page-out;
+}
 ::view-transition-new(root) {
-  animation-duration: .28s;
-  animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+  animation: .28s cubic-bezier(.16, 1, .3, 1) .06s both cb-page-in;
 }
 
 :root {

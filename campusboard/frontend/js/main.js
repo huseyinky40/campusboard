@@ -166,7 +166,7 @@ const App = (() => {
   function logout() {
     sessionStorage.removeItem('cb_token');
     sessionStorage.removeItem('cb_user');
-    window.location.href = '/login';
+    window.cbNav('/login');
   }
 
   // ── Load & render ─────────────────────────────────
