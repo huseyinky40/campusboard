@@ -211,7 +211,7 @@ const UI = {
     const count = document.getElementById('results-count');
     const context = document.getElementById('results-context');
 
-    count.textContent = `${listings.length} ilan`;
+    if (count) count.textContent = `${listings.length} ilan`;
     if (context) context.textContent = listings.length ? 'Mevcut sayfada gösteriliyor' : 'Filtreleri değiştirerek tekrar dene';
 
     if (listings.length === 0) {

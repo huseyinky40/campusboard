@@ -1,6 +1,6 @@
 # CampusBoard • Student Bulletin Board
 
-A JWT-protected full-stack student bulletin board. Students can share course notes, events, internships, second-hand items, lost & found posts, and general announcements.
+A JWT-protected full-stack student bulletin board for university communities. Students can share course notes, events, internships, second-hand items, lost & found posts, and general announcements — all behind university email verification.
 
 **Live:** https://campusboard.app  
 **Swagger:** http://localhost:3000/api-docs *(development only)*
@@ -13,12 +13,13 @@ A JWT-protected full-stack student bulletin board. Students can share course not
 |-------|-----------|
 | Frontend | Vanilla JavaScript (SPA), HTML5, CSS3 |
 | Backend | Node.js + Express |
-| Database | PostgreSQL (production/local) · SQLite in-memory (tests only) |
+| Database | PostgreSQL (production) · SQLite in-memory (tests) |
 | Authentication | JWT (jsonwebtoken) + bcryptjs |
+| Email | Resend API |
 | API Documentation | Swagger UI (OpenAPI 3.0) |
 | Testing | Jest |
 | Security | express-rate-limit |
-| Deployment | Vercel (frontend) · Railway (backend) |
+| Deployment | Vercel (frontend) · Railway (backend + PostgreSQL) |
 
 ---
 
@@ -28,7 +29,7 @@ A JWT-protected full-stack student bulletin board. Students can share course not
 
 - Node.js v18+
 - npm
-- PostgreSQL (for local development)
+- PostgreSQL (for local development with persistent data)
 
 ### Steps
 
@@ -41,8 +42,11 @@ cd campusboard
 cd campusboard/backend
 npm install
 
-# 3. Start the server
-DATABASE_URL=postgresql://<user>@localhost/<dbname> npm start
+# 3. Create .env file
+cp .env.example .env   # then fill in your values
+
+# 4. Start the server
+npm start
 ```
 
 App: `http://localhost:3000`  
@@ -52,15 +56,29 @@ Swagger UI: `http://localhost:3000/api-docs`
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `JWT_SECRET` | Token signing secret | Required in production |
-| `CORS_ORIGINS` | Allowed origins (comma-separated) | No |
+| `DATABASE_URL` | PostgreSQL connection string (or `:memory:` for SQLite) | Yes |
+| `JWT_SECRET` | Token signing secret | Yes (production) |
+| `RESEND_API_KEY` | Resend API key for transactional email | Yes (production) |
+| `EMAIL_FROM` | Sender address (e.g. `no-reply@campusboard.app`) | Yes (production) |
+| `CORS_ORIGINS` | Allowed origins, comma-separated | No |
+
+> **Local dev shortcut:** Set `DATABASE_URL=:memory:` in `.env` to use an in-memory SQLite database with no external dependencies.
 
 ### Development Mode (auto-reload)
 
 ```bash
 npm run dev
 ```
+
+### Seed Test Data
+
+Populate the database with 3 test users and 26 sample listings:
+
+```bash
+DATABASE_URL="postgresql://..." node seed.js
+```
+
+Test user credentials: `Test1234!` (all three accounts)
 
 ### Run Tests
 
@@ -84,8 +102,9 @@ campusboard/
 │   │   │   └── auth.js              # JWT verification middleware
 │   │   ├── services/
 │   │   │   ├── listingService.js    # Listing business logic, filtering, pagination
-│   │   │   ├── authService.js       # Register, login, profile business logic
+│   │   │   ├── authService.js       # Register, login, forgot/reset password, email verification
 │   │   │   ├── favoriteService.js   # Favorite toggle and listing
+│   │   │   ├── emailService.js      # Resend-based transactional email templates
 │   │   │   └── statsService.js      # Platform statistics
 │   │   ├── controllers/
 │   │   │   ├── listingController.js # Listing HTTP layer
@@ -102,20 +121,23 @@ campusboard/
 │   │   ├── authService.test.js      # 18 unit tests
 │   │   └── favoriteService.test.js  # 12 unit tests
 │   ├── server.js                    # Entry point
+│   ├── seed.js                      # Test data seeder
 │   └── package.json
 └── frontend/
     ├── index.html                   # Landing page
     ├── login.html                   # Login form
-    ├── register.html                # Registration form
+    ├── register.html                # Registration + email verification flow
+    ├── reset-password.html          # Password reset (OTP code entry)
     ├── app.html                     # Main SPA shell (dashboard)
     ├── assets/                      # Logo and images
     ├── css/
     │   ├── style.css                # Main styles
-    │   └── auth.css                 # Login/register styles
-    └── js/
-        ├── api.js                   # Fetch wrapper (Authorization header)
-        ├── ui.js                    # DOM rendering, card & modal logic
-        └── main.js                  # App controller & event listeners
+    │   └── auth.css                 # Auth page styles
+    ├── js/
+    │   ├── api.js                   # Fetch wrapper (Authorization header)
+    │   ├── ui.js                    # DOM rendering, card & modal logic
+    │   └── main.js                  # App controller & event listeners
+    └── vercel.json                  # Vercel routing + API proxy to Railway
 ```
 
 ---
@@ -126,8 +148,11 @@ campusboard/
 
 | Method | URL | Description | Protected |
 |--------|-----|-------------|-----------|
-| POST | `/api/auth/register` | Register a new user | — |
+| POST | `/api/auth/register` | Register with university email (sends verification code) | — |
+| POST | `/api/auth/verify-email` | Verify email with OTP code | — |
 | POST | `/api/auth/login` | Login — returns JWT token | — |
+| POST | `/api/auth/forgot-password` | Send password reset OTP to email | — |
+| POST | `/api/auth/reset-password` | Reset password using OTP code | — |
 | GET | `/api/auth/me` | Current user summary from token | ✓ |
 | GET | `/api/auth/profile` | Full profile details | ✓ |
 | PUT | `/api/auth/profile` | Update profile (including avatar) | ✓ |
@@ -194,15 +219,34 @@ campusboard/
 ### Register & Login
 
 ```bash
-# Register
+# Register (sends verification email)
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name": "Ali Kaya", "email": "ali@uni.edu", "password": "password123"}'
+  -d '{"name": "Ali Kaya", "email": "ali@uni.edu.tr", "password": "MyPass123!"}'
+
+# Verify email
+curl -X POST http://localhost:3000/api/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ali@uni.edu.tr", "code": "123456"}'
 
 # Login
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "ali@uni.edu", "password": "password123"}'
+  -d '{"email": "ali@uni.edu.tr", "password": "MyPass123!"}'
+```
+
+### Forgot / Reset Password
+
+```bash
+# Request reset OTP
+curl -X POST http://localhost:3000/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ali@uni.edu.tr"}'
+
+# Reset password (OTP expires in 1 hour; new password must differ from last 3)
+curl -X POST http://localhost:3000/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ali@uni.edu.tr", "code": "654321", "password": "NewPass456!"}'
 ```
 
 ### Listing Operations
@@ -217,7 +261,7 @@ curl -X POST http://localhost:3000/api/listings \
     "description": "Second semester integral notes, homework solutions included",
     "category": "ders-notu",
     "faculty": "muhendislik",
-    "contact": "ali@uni.edu||0532 111 22 33"
+    "contact": "ali@uni.edu.tr||0532 111 22 33"
   }'
 
 # Faculty + category filtered search, page 2
@@ -234,7 +278,7 @@ curl -H "Authorization: Bearer <token>" \
 Multiple contact entries are separated by `||`:
 
 ```
-"ali@uni.edu||0532 111 22 33||@ali_student"
+"ali@uni.edu.tr||0532 111 22 33||@ali_student"
 ```
 
 Email, phone, and other types (social media, etc.) are auto-detected.
@@ -244,10 +288,19 @@ Email, phone, and other types (social media, etc.) are auto-detected.
 ## Features
 
 ### Authentication & Security
-- JWT-based register/login; token valid for 7 days
+- University email verification required on registration (OTP via email)
+- JWT-based sessions; token valid for 7 days
+- Forgot password / reset password with time-limited OTP codes
+- Password history: last 3 passwords cannot be reused
 - Password hashing with bcrypt
 - Rate limiting on auth endpoints (20 requests per 15 min)
 - JWT required for all CRUD operations
+
+### Email
+- Transactional email via Resend API
+- Verification code email on registration
+- Password reset OTP email
+- Unified dark-themed branded templates
 
 ### Listing Management
 - Full CRUD support
@@ -280,7 +333,9 @@ Email, phone, and other types (social media, etc.) are auto-detected.
 
 - **Business logic separated from routes:** Services are directly testable; routes handle only the HTTP layer.
 - **Dependency injection:** `Service(db)` → `Controller(service)` — in-memory SQLite used in tests, PostgreSQL in production.
+- **Dual-adapter database layer:** `db.js` exports a unified interface over both `pg` (PostgreSQL) and `better-sqlite3`, selected by `DATABASE_URL`.
 - **Dual-side validation:** Both frontend and backend enforce the same rules.
 - **Data isolation:** Write operations enforced at API level with `WHERE id = ? AND user_id = ?`; users cannot access other users' records.
 - **SPA:** All navigation done via fetch — no page reloads.
 - **Information non-disclosure:** Write operations targeting another user's record return `404` — existence is never revealed.
+- **Vercel + Railway split:** Frontend is a static site on Vercel; `vercel.json` proxies `/api/*` to the Railway backend, so the frontend has no hardcoded backend URL.

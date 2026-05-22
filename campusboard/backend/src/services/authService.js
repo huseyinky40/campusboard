@@ -162,13 +162,36 @@ class AuthService {
       throw { type: 'validation', errors: ['Şifre en az 8 karakter olmalıdır'] };
 
     const user = await this._getValidResetUser(email, code);
-    const hash = bcrypt.hashSync(password, 10);
+
+    if (bcrypt.compareSync(password, user.password))
+      throw { type: 'validation', errors: ['Yeni şifreniz son 3 şifrenizden farklı olmalıdır'] };
+
+    const history = await this.db.all(
+      'SELECT hash FROM password_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 2',
+      [user.id]
+    );
+    for (const entry of history) {
+      if (bcrypt.compareSync(password, entry.hash))
+        throw { type: 'validation', errors: ['Yeni şifreniz son 3 şifrenizden farklı olmalıdır'] };
+    }
+
+    const newHash = bcrypt.hashSync(password, 10);
 
     await this.db.run(
-      `UPDATE users
-       SET password = ?, reset_token_hash = NULL, reset_token_expires = NULL
-       WHERE id = ?`,
-      [hash, user.id]
+      'INSERT INTO password_history (user_id, hash) VALUES (?, ?)',
+      [user.id, user.password]
+    );
+
+    await this.db.run(
+      `DELETE FROM password_history WHERE user_id = ? AND id NOT IN (
+         SELECT id FROM password_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 2
+       )`,
+      [user.id, user.id]
+    );
+
+    await this.db.run(
+      `UPDATE users SET password = ?, reset_token_hash = NULL, reset_token_expires = NULL WHERE id = ?`,
+      [newHash, user.id]
     );
 
     return { message: 'Şifre güncellendi' };

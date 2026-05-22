@@ -212,9 +212,12 @@
 
   <script>
     (() => {
+      if (history.scrollRestoration) history.scrollRestoration = 'manual';
+      window.scrollTo(0, 0);
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.addEventListener('pageshow', () => {
         document.body.classList.remove('page-transitioning');
+        window.scrollTo(0, 0);
       });
       window.addEventListener('pagehide', () => {
         document.body.classList.remove('page-transitioning');
