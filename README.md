@@ -87,7 +87,7 @@ cd campusboard/backend
 npm test
 ```
 
-58 tests · 3 files · ListingService · AuthService · FavoriteService
+96 tests · 3 files · ListingService · AuthService · FavoriteService
 
 ---
 
@@ -117,8 +117,8 @@ campusboard/
 │   │   │   └── stats.js             # Stats routes (JWT protected)
 │   │   └── app.js                   # Express app setup
 │   ├── tests/
-│   │   ├── listingService.test.js   # 28 unit tests
-│   │   ├── authService.test.js      # 18 unit tests
+│   │   ├── listingService.test.js   # 31 unit tests
+│   │   ├── authService.test.js      # 53 unit tests
 │   │   └── favoriteService.test.js  # 12 unit tests
 │   ├── server.js                    # Entry point
 │   ├── seed.js                      # Test data seeder
@@ -127,13 +127,15 @@ campusboard/
     ├── index.html                   # Landing page
     ├── login.html                   # Login form
     ├── register.html                # Registration + email verification flow
-    ├── reset-password.html          # Password reset (OTP code entry)
-    ├── app.html                     # Main SPA shell (dashboard)
+    ├── forgot-password.html         # Forgot password (email input)
+    ├── reset-password.html          # Password reset (OTP code entry + new password)
+    ├── app.html                     # Main dashboard shell
     ├── assets/                      # Logo and images
     ├── css/
     │   ├── style.css                # Main styles
     │   └── auth.css                 # Auth page styles
     ├── js/
+    │   ├── nav.js                   # Cross-page transition helper (View Transitions API + fallback)
     │   ├── api.js                   # Fetch wrapper (Authorization header)
     │   ├── ui.js                    # DOM rendering, card & modal logic
     │   └── main.js                  # App controller & event listeners
@@ -148,10 +150,13 @@ campusboard/
 
 | Method | URL | Description | Protected |
 |--------|-----|-------------|-----------|
+| GET | `/api/auth/universities` | List supported universities and domains | — |
 | POST | `/api/auth/register` | Register with university email (sends verification code) | — |
-| POST | `/api/auth/verify-email` | Verify email with OTP code | — |
+| POST | `/api/auth/verify-email` | Verify email with 6-digit OTP code | — |
+| POST | `/api/auth/resend-verify` | Resend email verification code | — |
 | POST | `/api/auth/login` | Login — returns JWT token | — |
 | POST | `/api/auth/forgot-password` | Send password reset OTP to email | — |
+| POST | `/api/auth/verify-reset-code` | Validate password reset OTP (without changing password) | — |
 | POST | `/api/auth/reset-password` | Reset password using OTP code | — |
 | GET | `/api/auth/me` | Current user summary from token | ✓ |
 | GET | `/api/auth/profile` | Full profile details | ✓ |
@@ -243,7 +248,7 @@ curl -X POST http://localhost:3000/api/auth/forgot-password \
   -H "Content-Type: application/json" \
   -d '{"email": "ali@uni.edu.tr"}'
 
-# Reset password (OTP expires in 1 hour; new password must differ from last 3)
+# Reset password (OTP expires in 10 minutes; new password must differ from last 3)
 curl -X POST http://localhost:3000/api/auth/reset-password \
   -H "Content-Type: application/json" \
   -d '{"email": "ali@uni.edu.tr", "code": "654321", "password": "NewPass456!"}'
@@ -336,6 +341,6 @@ Email, phone, and other types (social media, etc.) are auto-detected.
 - **Dual-adapter database layer:** `db.js` exports a unified interface over both `pg` (PostgreSQL) and `better-sqlite3`, selected by `DATABASE_URL`.
 - **Dual-side validation:** Both frontend and backend enforce the same rules.
 - **Data isolation:** Write operations enforced at API level with `WHERE id = ? AND user_id = ?`; users cannot access other users' records.
-- **SPA:** All navigation done via fetch — no page reloads.
+- **Multi-page + smooth transitions:** Each page is a separate HTML document. Cross-page navigation uses the View Transitions API (`@view-transition { navigation: auto }`) in Chrome/Edge for slide-fade animations, with a JS opacity-fade fallback (`nav.js`) for Firefox/Safari.
 - **Information non-disclosure:** Write operations targeting another user's record return `404` — existence is never revealed.
 - **Vercel + Railway split:** Frontend is a static site on Vercel; `vercel.json` proxies `/api/*` to the Railway backend, so the frontend has no hardcoded backend URL.
