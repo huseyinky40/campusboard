@@ -222,6 +222,26 @@ function createAuthRouter(controller, authService) {
    *   post:
    *     summary: Şifre sıfırlama kodu gönder
    *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email]
+   *             properties:
+   *               email: { type: string, example: "ahmet@istanbularel.edu.tr" }
+   *     responses:
+   *       200:
+   *         description: Şifre sıfırlama kodu e-posta adresine gönderildi
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message: { type: string }
+   *       400:
+   *         description: Geçersiz e-posta adresi
    */
   router.post('/forgot-password', (req, res) => controller.forgotPassword(req, res));
 
@@ -231,6 +251,28 @@ function createAuthRouter(controller, authService) {
    *   post:
    *     summary: Şifre sıfırlama kodunu doğrula
    *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email, code]
+   *             properties:
+   *               email: { type: string, example: "ahmet@istanbularel.edu.tr" }
+   *               code:  { type: string, minLength: 5, maxLength: 5, example: "AbCd2" }
+   *     responses:
+   *       200:
+   *         description: Kod doğrulandı
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message: { type: string }
+   *                 email:   { type: string }
+   *       400:
+   *         description: Hatalı veya süresi dolmuş kod
    */
   router.post('/verify-reset-code', (req, res) => controller.verifyResetCode(req, res));
 
@@ -240,6 +282,28 @@ function createAuthRouter(controller, authService) {
    *   post:
    *     summary: Yeni şifre belirle
    *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required: [email, code, password]
+   *             properties:
+   *               email:    { type: string, example: "ahmet@istanbularel.edu.tr" }
+   *               code:     { type: string, minLength: 5, maxLength: 5, example: "AbCd2" }
+   *               password: { type: string, minLength: 8, example: "newpassword123" }
+   *     responses:
+   *       200:
+   *         description: Şifre başarıyla sıfırlandı
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message: { type: string }
+   *       400:
+   *         description: Validasyon hatası veya hatalı kod
    */
   router.post('/reset-password', (req, res) => controller.resetPassword(req, res));
 
