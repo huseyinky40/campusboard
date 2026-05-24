@@ -2,9 +2,12 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>CampusBoard • Öğrenci İlan Panosu</title>
   <link rel="icon" type="image/svg+xml" href="assets/campusboard_app_icon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192.png" />
+  <meta name="theme-color" content="#7c3aed" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Sora:wght@600;700;800&display=swap&subset=latin-ext" rel="stylesheet" />
@@ -32,20 +35,20 @@
           <svg viewBox="0 0 16 16" fill="none" width="15" height="15">
             <path d="M8 13.5S2 9.5 2 5.5A3.5 3.5 0 018 3.17 3.5 3.5 0 0114 5.5c0 4-6 8-6 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
-          Favorilerim
+          <span class="btn-label" data-mobile="Favori">Favorilerim</span>
         </button>
         <button id="btn-my-listings" class="btn btn-ghost">
           <svg viewBox="0 0 16 16" fill="none" width="15" height="15">
             <rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
             <path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          İlanlarım
+          <span class="btn-label" data-mobile="İlanlar">İlanlarım</span>
         </button>
         <button id="btn-new" class="btn btn-primary">
           <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
             <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          Yeni İlan
+          <span class="btn-label" data-mobile="Yeni">Yeni İlan</span>
         </button>
         <div class="user-menu" id="user-menu">
           <button class="user-menu-trigger" id="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
@@ -191,6 +194,9 @@
       <div class="sort-control" id="sort-control">
         <span>Sırala</span>
         <button type="button" class="sort-trigger" id="sort-trigger" aria-haspopup="listbox" aria-expanded="false">
+          <svg class="sort-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
           <span id="sort-value">Varsayılan</span>
           <svg class="sort-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -363,14 +369,16 @@
             Bitiş Tarihi
             <span class="form-label-hint">— boş bırakılırsa süresiz</span>
           </label>
-          <input type="date" id="form-expires-at" max="2050-12-31" />
+          <input type="text" id="form-expires-at" placeholder="gg/aa/yyyy" inputmode="numeric" maxlength="10" autocomplete="off" />
+          <span class="field-error" id="err-expires-at"></span>
           <span class="field-hint">Aktif ilanlar bu tarihte otomatik kapatılır. Kapatılan ilanlar 30 gün sonra sistemden silinir.</span>
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="btn-form-cancel">İptal</button>
-          <button type="submit" class="btn btn-primary" id="btn-form-submit">İlanı Yayınla</button>
-        </div>
       </form>
+      </div>
+      <!-- Buttons outside scroll body: always visible, never overflow -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="btn-form-cancel">İptal</button>
+        <button type="submit" form="listing-form" class="btn btn-primary" id="btn-form-submit">İlanı Yayınla</button>
       </div>
     </div>
   </div>

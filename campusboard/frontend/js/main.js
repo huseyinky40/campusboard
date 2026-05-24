@@ -264,6 +264,7 @@ const App = (() => {
     const data = UI.getFormData();
     const errors = UI.validateForm(data);
     if (errors.length > 0) { UI.showFormErrors(errors); return; }
+    delete data._expiresRaw;
 
     const id = document.getElementById('form-id').value;
     try {
@@ -833,6 +834,8 @@ const App = (() => {
     FAV.init();
     MLD.init();
 
+    initScrollIndicators();
+
     // User menu dropdown
     const menuTrigger  = document.getElementById('user-menu-trigger');
     const userDropdown = document.getElementById('user-dropdown');
@@ -984,6 +987,16 @@ const App = (() => {
     initFsel('category', 'form-category');
     initFsel('faculty',  'form-faculty');
 
+    const expiresInput = document.getElementById('form-expires-at');
+    expiresInput.addEventListener('input', () => {
+      const digits = expiresInput.value.replace(/\D/g, '').slice(0, 8);
+      const parts = [];
+      if (digits.slice(0, 2)) parts.push(digits.slice(0, 2));
+      if (digits.slice(2, 4)) parts.push(digits.slice(2, 4));
+      if (digits.slice(4, 8)) parts.push(digits.slice(4, 8));
+      expiresInput.value = parts.join('/');
+    });
+
     document.getElementById('listing-form').addEventListener('submit', handleFormSubmit);
     document.getElementById('btn-form-cancel').addEventListener('click', closeFormAndReturn);
     document.getElementById('modal-form-close').addEventListener('click', closeFormAndReturn);
@@ -1002,6 +1015,95 @@ const App = (() => {
       UI.closeDetail();
       closeProfile();
       MLD.close();
+    });
+  }
+
+  function initScrollIndicators() {
+    const tracked = new Set();
+    const mobileQuery = window.matchMedia('(max-width: 640px)');
+
+    function clearHorizontal(el) {
+      el.style.removeProperty('--scroll-thumb-x');
+      el.style.removeProperty('--scroll-thumb-w');
+      el.style.removeProperty('--scroll-track-w');
+    }
+
+    function clearVertical(el) {
+      el.style.removeProperty('--scroll-thumb-y');
+      el.style.removeProperty('--scroll-thumb-h');
+      el.style.removeProperty('--scroll-track-h');
+    }
+
+    function updateHorizontal(el) {
+      if (!mobileQuery.matches) {
+        clearHorizontal(el);
+        return;
+      }
+      const max = el.scrollWidth - el.clientWidth;
+      if (max <= 1) {
+        el.style.setProperty('--scroll-thumb-x', '0px');
+        el.style.setProperty('--scroll-thumb-w', '0px');
+        el.style.setProperty('--scroll-track-w', '0px');
+        return;
+      }
+      const thumbWidth = Math.max(48, (el.clientWidth / el.scrollWidth) * el.clientWidth);
+      const travel = el.clientWidth - thumbWidth;
+      const x = (el.scrollLeft / max) * travel;
+      el.style.setProperty('--scroll-thumb-x', `${x}px`);
+      el.style.setProperty('--scroll-thumb-w', `${thumbWidth}px`);
+      el.style.setProperty('--scroll-track-w', '100%');
+    }
+
+    function updateVertical(el) {
+      if (!mobileQuery.matches) {
+        clearVertical(el);
+        return;
+      }
+      const max = el.scrollHeight - el.clientHeight;
+      const trackHeight = Math.max(44, el.clientHeight - 28);
+      if (max <= 12) {
+        el.style.setProperty('--scroll-thumb-y', '14px');
+        el.style.setProperty('--scroll-thumb-h', '0px');
+        el.style.setProperty('--scroll-track-h', '0px');
+        return;
+      }
+      const thumbHeight = Math.max(44, (el.clientHeight / el.scrollHeight) * trackHeight);
+      const travel = trackHeight - thumbHeight;
+      const y = 14 + (el.scrollTop / max) * travel;
+      el.style.setProperty('--scroll-thumb-y', `${y}px`);
+      el.style.setProperty('--scroll-thumb-h', `${thumbHeight}px`);
+      el.style.setProperty('--scroll-track-h', `${trackHeight}px`);
+    }
+
+    function track(el, axis) {
+      if (!el || tracked.has(el)) return;
+      tracked.add(el);
+      const update = () => axis === 'x' ? updateHorizontal(el) : updateVertical(el);
+      el.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      requestAnimationFrame(update);
+    }
+
+    track(document.getElementById('category-pills'), 'x');
+    document.querySelectorAll('.modal-scroll-body, .mld-body, .pmodal-scroll-body').forEach(el => track(el, 'y'));
+
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(() => {
+        tracked.forEach(el => {
+          const axis = el.id === 'category-pills' ? 'x' : 'y';
+          axis === 'x' ? updateHorizontal(el) : updateVertical(el);
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+
+    mobileQuery.addEventListener('change', () => {
+      requestAnimationFrame(() => {
+        tracked.forEach(el => {
+          const axis = el.id === 'category-pills' ? 'x' : 'y';
+          axis === 'x' ? updateHorizontal(el) : updateVertical(el);
+        });
+      });
     });
   }
 
