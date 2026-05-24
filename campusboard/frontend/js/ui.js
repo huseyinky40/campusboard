@@ -71,6 +71,32 @@ function daysLeft(expiresAt) {
   return diff;
 }
 
+function formatDateForInput(value) {
+  if (!value) return '';
+  const iso = String(value).slice(0, 10);
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : '';
+}
+
+function normalizeDateInput(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) return null;
+
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
 const _ICON_CAL = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 1v3M11 1v3M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 const _ICON_CLK = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
@@ -158,10 +184,10 @@ function detailMetaHTML(listing) {
       </div>
       ${statusRow}
       ${remainRow}
-      <div class="dmeta-item">
-        <span class="dmeta-label"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>Görüntülenme</span>
-        <span class="dmeta-value">${listing.view_count || 0} kez</span>
-      </div>
+    </div>
+    <div class="dmeta-views-row">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+      <span class="dmeta-views-val">${listing.view_count || 0} görüntülenme</span>
     </div>`;
 }
 
@@ -329,59 +355,54 @@ const UI = {
 
     const contactBox  = document.getElementById('detail-contact-box');
 
-    if (isOwner) {
-      contactBox.innerHTML = '';
-      contactBox.classList.add('hidden');
-    } else {
-      contactBox.classList.remove('hidden');
-    }
-
     const parsedContacts = parseContacts(listing.contact);
     const TYPE_LABEL  = { email: 'E-Posta', phone: 'Telefon', other: 'Diğer' };
     const copySVG  = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 11V3a2 2 0 012-2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
     const checkSVG = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8l4 4 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-    if (isOwner) {
+    if (parsedContacts.length === 0) {
       contactBox.innerHTML = '';
-    }
+      contactBox.classList.add('hidden');
+    } else {
+      contactBox.classList.remove('hidden');
+      const rowsHTML = parsedContacts.map(({ type, value }) => {
+        const href         = contactHref(type, value);
+        const actionLabel  = type === 'email' ? 'Gönder' : type === 'phone' ? 'Ara' : null;
+        const primaryBtn   = href && actionLabel
+          ? `<a href="${href}" class="dc-action-btn dc-action-primary" target="_blank" rel="noopener" title="${actionLabel}">
+               ${contactIconSVG(type, 12)} ${actionLabel}
+             </a>`
+          : '';
+        return `
+          <div class="dc-row">
+            <div class="dc-row-icon">${contactIconSVG(type, 16)}</div>
+            <div class="dc-row-body">
+              <span class="dc-row-label">${TYPE_LABEL[type] || 'İletişim'}</span>
+              <span class="dc-row-value">${escHtml(value)}</span>
+            </div>
+            <div class="dc-row-actions">
+              ${primaryBtn}
+              <button class="dc-action-btn dc-copy-btn" data-copy="${escHtml(value)}" title="Kopyala">
+                ${copySVG} Kopyala
+              </button>
+            </div>
+          </div>`;
+      }).join('');
 
-    const rowsHTML = !isOwner ? parsedContacts.map(({ type, value }) => {
-      const href         = contactHref(type, value);
-      const actionLabel  = type === 'email' ? 'Gönder' : type === 'phone' ? 'Ara' : null;
-      const primaryBtn   = href && actionLabel
-        ? `<a href="${href}" class="dc-action-btn dc-action-primary" target="_blank" rel="noopener" title="${actionLabel}">
-             ${contactIconSVG(type, 12)} ${actionLabel}
-           </a>`
-        : '';
-      return `
-        <div class="dc-row">
-          <div class="dc-row-icon">${contactIconSVG(type, 16)}</div>
-          <div class="dc-row-body">
-            <span class="dc-row-label">${TYPE_LABEL[type] || 'İletişim'}</span>
-            <span class="dc-row-value">${escHtml(value)}</span>
+      contactBox.innerHTML = `
+        <div class="dc-panel">
+          <div class="dc-header">
+            <div class="dc-header-icon">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M2.5 13c0-2.485 2.462-4 5.5-4s5.5 1.515 5.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="dc-heading">İletişim Bilgileri</span>
           </div>
-          <div class="dc-row-actions">
-            ${primaryBtn}
-            <button class="dc-action-btn dc-copy-btn" data-copy="${escHtml(value)}" title="Kopyala">
-              ${copySVG} Kopyala
-            </button>
-          </div>
+          <div class="dc-rows">${rowsHTML}</div>
         </div>`;
-    }).join('') : '';
-
-    if (!isOwner) contactBox.innerHTML = `
-      <div class="dc-panel">
-        <div class="dc-header">
-          <div class="dc-header-icon">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M2.5 13c0-2.485 2.462-4 5.5-4s5.5 1.515 5.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <span class="dc-heading">İletişim Bilgileri</span>
-        </div>
-        <div class="dc-rows">${rowsHTML}</div>
-      </div>`;
+    }
 
     // Favorite button in detail modal
     const detailFavBtn = document.getElementById('detail-fav-btn');
@@ -449,12 +470,11 @@ const UI = {
       });
     }
 
-    // expires_at: strip time part if present so date input works
+    // expires_at: render as dd/mm/yyyy for the masked mobile-friendly field
     document.getElementById('form-expires-at').value  =
-      isEdit && listing.expires_at ? listing.expires_at.slice(0, 10) : '';
+      isEdit && listing.expires_at ? formatDateForInput(listing.expires_at) : '';
     this.clearFormErrors();
     document.getElementById('modal-form').classList.remove('hidden');
-    document.getElementById('form-title').focus();
   },
 
   closeForm() {
@@ -462,7 +482,7 @@ const UI = {
   },
 
   clearFormErrors() {
-    ['title', 'category', 'faculty', 'description', 'contact'].forEach(f => {
+    ['title', 'category', 'faculty', 'description', 'contact', 'expires-at'].forEach(f => {
       const err     = document.getElementById(`err-${f}`);
       const input   = document.getElementById(`form-${f}`);
       const trigger = document.getElementById(`fsel-${f}-btn`);
@@ -480,6 +500,7 @@ const UI = {
       else if (msg.includes('fakülte'))  this._setErr('faculty', msg);
       else if (msg.includes('Açıklama')) this._setErr('description', msg);
       else if (msg.includes('İletişim') || msg.includes('e-posta') || msg.includes('telefon')) this._setErr('contact', msg);
+      else if (msg.includes('Bitiş')) this._setErr('expires-at', msg);
     });
   },
 
@@ -494,13 +515,15 @@ const UI = {
 
   getFormData() {
     const expiresRaw = document.getElementById('form-expires-at').value;
+    const expiresAt = normalizeDateInput(expiresRaw);
     return {
       title:       document.getElementById('form-title').value.trim(),
       category:    document.getElementById('form-category').value,
       faculty:     document.getElementById('form-faculty').value,
       description: document.getElementById('form-description').value.trim(),
       contact:     encodeContacts(),
-      expires_at:  expiresRaw || null,
+      expires_at:  expiresRaw ? expiresAt : null,
+      _expiresRaw: expiresRaw,
     };
   },
 
@@ -517,6 +540,8 @@ const UI = {
       errors.push('Geçersiz kategori');
     if (!data.faculty)
       errors.push('Geçersiz fakülte');
+    if (data._expiresRaw && !data.expires_at)
+      errors.push('Bitiş tarihi gg/aa/yyyy formatında olmalıdır');
     const _email = document.getElementById('form-contact-email')?.value.trim() || '';
     const _phone = document.getElementById('form-contact-phone')?.value.trim() || '';
     const _other = document.getElementById('form-contact-other')?.value.trim() || '';

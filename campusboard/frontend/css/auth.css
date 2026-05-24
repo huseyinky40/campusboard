@@ -870,58 +870,134 @@ input[type=text].auth-code-input {
 
 @media (max-width: 540px) {
   .auth-body {
-    padding: 10px;
+    padding: 20px 14px;
     overflow-x: hidden;
+    justify-content: center;
+    gap: 0;
   }
 
+  /* Strip dark panel to topbar-only on small mobile */
   .auth-panel-left {
-    padding: .7rem;
+    background: none;
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .auth-panel-left::before,
+  .auth-panel-left::after {
+    display: none;
+  }
+
+  .auth-hero,
+  .auth-features {
+    display: none;
   }
 
   .auth-topbar {
-    gap: .65rem;
-    justify-content: flex-start;
+    min-height: 48px;
+    padding: 0 4px;
   }
 
   .auth-back {
-    min-height: 38px;
-    padding: 0 .78rem;
-    font-size: .84rem;
+    color: var(--text);
+    background: rgba(0, 0, 0, .06);
+    border-color: rgba(0, 0, 0, .1);
+    font-size: .82rem;
+    min-height: 36px;
+    padding: 0 .75rem;
   }
 
-  .auth-brand-text {
-    font-size: .92rem;
+  .auth-back:hover {
+    color: var(--text);
+    background: rgba(0, 0, 0, .1);
+  }
+
+  .auth-back svg path {
+    stroke: currentColor;
   }
 
   .auth-brand {
     display: none;
   }
 
+  .auth-panel-right {
+    min-height: 0;
+  }
+
   .auth-form-wrap {
-    padding: 1.15rem;
+    padding: 1.4rem 1.1rem;
+    border-radius: 20px;
     overflow: hidden;
   }
 
+  .auth-form-header {
+    margin-bottom: 1.1rem;
+  }
+
   .auth-form-header h1 {
-    font-size: 1.8rem;
+    font-size: 1.35rem;
+  }
+
+  .auth-form-header p {
+    font-size: .84rem;
+  }
+
+  .auth-domain-notice,
+  .auth-verify-intro {
+    padding: .55rem .75rem;
+    margin: 0 0 1rem;
+    gap: .6rem;
+  }
+
+  .auth-domain-notice img,
+  .auth-verify-intro img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .auth-domain-notice strong,
+  .auth-verify-intro strong {
+    font-size: .84rem;
+  }
+
+  .auth-field {
+    gap: .4rem;
+    margin-bottom: .85rem;
   }
 
   .auth-input,
   input[type=text].auth-input,
   input[type=email].auth-input,
   input[type=password].auth-input {
-    height: 50px;
+    height: 44px;
     font-size: 16px;
   }
 
   .auth-pw-rules {
     gap: .35rem;
+    margin-top: .45rem;
   }
 
   .auth-pw-rule {
-    min-height: 28px;
-    padding: 0 .52rem;
-    font-size: .68rem;
+    min-height: 26px;
+    padding: 0 .5rem;
+    font-size: .67rem;
+  }
+
+  .auth-remember {
+    margin: .4rem 0 .8rem;
+    font-size: .84rem;
+  }
+
+  .auth-submit {
+    height: 46px;
+    margin-top: .35rem;
+  }
+
+  .auth-switch {
+    margin-top: .9rem;
+    font-size: .82rem;
   }
 }
 
