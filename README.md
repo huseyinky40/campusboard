@@ -130,7 +130,12 @@ campusboard/
     ├── forgot-password.html         # Forgot password (email input)
     ├── reset-password.html          # Password reset (OTP code entry + new password)
     ├── app.html                     # Main dashboard shell
-    ├── assets/                      # Logo and images
+    ├── assets/
+    │   ├── campusboard_app_icon.svg  # App icon (SVG)
+    │   ├── icon-192.png              # PWA / favicon (192×192)
+    │   ├── icon-512.png              # PWA icon (512×512)
+    │   └── istanbul_arel_university_logo_black.svg
+    ├── sitemap.xml                  # Sitemap (submitted to Google Search Console)
     ├── css/
     │   ├── style.css                # Main styles
     │   └── auth.css                 # Auth page styles
@@ -320,6 +325,15 @@ Email, phone, and other types (social media, etc.) are auto-detected.
 - View favorites list
 - Favorites auto-removed when a listing is deleted
 
+### Mobile UX
+- Dashboard header adapts to viewport: full labels on desktop (`Favorilerim`, `İlanlarım`, `Yeni İlan`), compact labels on mobile (`Favori`, `İlanlar`, `Yeni`)
+- Modals (İlanlarım / Favorilerim / İlan Detayı) centered on mobile — no bottom-anchoring
+- Yeni İlan form: compact layout, buttons stay inside the card, no viewport-bottom overlap
+- Expiry date input uses a masked `gg/aa/yyyy` text field (no native date picker)
+- Tap highlight removed on mobile for cleaner interactions
+- Custom thin scroll indicator on mobile; hidden on desktop
+- Category bar shows a horizontal-scroll affordance on narrow screens
+
 ### View Counter
 - Unique views per user (same user viewing multiple times counts as 1)
 - Tracked via `listing_views(user_id, listing_id)` table
@@ -344,3 +358,5 @@ Email, phone, and other types (social media, etc.) are auto-detected.
 - **Multi-page + smooth transitions:** Each page is a separate HTML document. Cross-page navigation uses the View Transitions API (`@view-transition { navigation: auto }`) in Chrome/Edge for slide-fade animations, with a JS opacity-fade fallback (`nav.js`) for Firefox/Safari.
 - **Information non-disclosure:** Write operations targeting another user's record return `404` — existence is never revealed.
 - **Vercel + Railway split:** Frontend is a static site on Vercel; `vercel.json` proxies `/api/*` to the Railway backend, so the frontend has no hardcoded backend URL.
+- **PWA-ready icons:** `icon-192.png` and `icon-512.png` serve as favicon, Apple touch icon, and future PWA manifest icons. `/favicon.ico` is rewritten to `icon-192.png` via Vercel rewrites.
+- **SEO:** `sitemap.xml` lists all public routes and is submitted to Google Search Console for faster indexing.
