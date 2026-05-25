@@ -827,6 +827,138 @@ const App = (() => {
     return { open, close, init };
   })();
 
+  // ── Üniversite Haberleri ───────────────────────────
+  async function loadUniversityNews() {
+    const track   = document.getElementById('uni-news-track');
+    const prevBtn = document.getElementById('uni-prev');
+    const nextBtn = document.getElementById('uni-next');
+    if (!track || !prevBtn || !nextBtn) return false;
+
+    const fmt = date => {
+      if (!date) return '';
+      try { return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date)); }
+      catch (_) { return ''; }
+    };
+
+    try {
+      const news = await Api.request('GET', '/university/news');
+      if (!Array.isArray(news) || news.length === 0) return false;
+
+      const items = news.slice(0, 9);
+
+      track.innerHTML = items.map(item => `
+        <a class="uni-news-card" href="${item.link}" target="_blank" rel="noopener noreferrer">
+          <div class="uni-news-card-img">
+            ${item.image
+              ? `<img src="${item.image}" alt="" loading="lazy" decoding="async">`
+              : `<div class="uni-news-card-img-fallback">
+                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#fff" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" fill="#fff"/><path d="M21 15l-5-5L5 21" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+                 </div>`}
+          </div>
+          <div class="uni-news-card-body">
+            <div class="uni-news-card-title">${item.title}</div>
+            ${item.date ? `<div class="uni-news-card-date">${fmt(item.date)}</div>` : ''}
+          </div>
+        </a>
+      `).join('');
+
+      // Desktop carousel — kaydır 1 kart
+      const cardWidth = () => {
+        const card = track.querySelector('.uni-news-card');
+        if (!card) return 0;
+        const gap = 12;
+        return card.offsetWidth + gap;
+      };
+
+      let offset = 0;
+      const maxOffset = () => Math.max(0, track.scrollWidth - track.parentElement.clientWidth);
+      const syncNav = () => {
+        const disabled = maxOffset() <= 1;
+        prevBtn.disabled = disabled;
+        nextBtn.disabled = disabled;
+      };
+
+      function slide(dir) {
+        const max = maxOffset();
+        if (max <= 1) {
+          syncNav();
+          return;
+        }
+
+        if (dir < 0 && offset <= 0) {
+          offset = max;
+        } else if (dir > 0 && offset >= max) {
+          offset = 0;
+        } else {
+          offset = Math.min(Math.max(0, offset + dir * cardWidth()), max);
+        }
+
+        track.style.transform = `translateX(-${offset}px)`;
+        syncNav();
+      }
+
+      requestAnimationFrame(syncNav);
+      prevBtn.addEventListener('click', () => slide(-1));
+      nextBtn.addEventListener('click', () => slide(1));
+      window.addEventListener('resize', () => {
+        offset = Math.min(offset, maxOffset());
+        track.style.transform = `translateX(-${offset}px)`;
+        syncNav();
+      });
+      return true;
+
+    } catch (_) {
+      /* sessizce geç */
+      return false;
+    }
+  }
+
+  // ── Tab Sistemi ───────────────────────────────────
+  (function initTabs() {
+    let newsLoaded = false;
+    const tabs = document.querySelectorAll('.campus-tab');
+    const panels = {
+      ilanlar: document.getElementById('panel-ilanlar'),
+      haberler: document.getElementById('panel-haberler'),
+    };
+    let activeTab = 'ilanlar';
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        if (target === activeTab) return;
+        const currentPanel = panels[activeTab];
+        const nextPanel = panels[target];
+        if (!nextPanel) return;
+
+        tabs.forEach(t => {
+          const active = t.dataset.tab === target;
+          t.classList.toggle('active', active);
+          t.setAttribute('aria-selected', String(active));
+        });
+
+        if (currentPanel) {
+          currentPanel.classList.remove('campus-tab-panel--active');
+          window.setTimeout(() => {
+            if (activeTab !== currentPanel.id.replace('panel-', '')) currentPanel.hidden = true;
+          }, 220);
+        }
+
+        nextPanel.hidden = false;
+        requestAnimationFrame(() => {
+          nextPanel.classList.add('campus-tab-panel--active');
+        });
+        activeTab = target;
+
+        if (target === 'haberler' && !newsLoaded) {
+          loadUniversityNews().then(loaded => {
+            newsLoaded = loaded;
+          });
+        }
+      });
+    });
+  })();
+
   // ── Init ──────────────────────────────────────────
   function init() {
     initUser();

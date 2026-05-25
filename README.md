@@ -105,7 +105,8 @@ campusboard/
 │   │   │   ├── authService.js       # Register, login, forgot/reset password, email verification
 │   │   │   ├── favoriteService.js   # Favorite toggle and listing
 │   │   │   ├── emailService.js      # Resend-based transactional email templates
-│   │   │   └── statsService.js      # Platform statistics
+│   │   │   ├── statsService.js      # Platform statistics
+│   │   │   └── universityService.js # RSS feed fetch + og:image resolution, 15 min cache
 │   │   ├── controllers/
 │   │   │   ├── listingController.js # Listing HTTP layer
 │   │   │   ├── authController.js    # Auth HTTP layer
@@ -114,7 +115,8 @@ campusboard/
 │   │   │   ├── listings.js          # Listing routes (JWT protected)
 │   │   │   ├── auth.js              # Auth routes (rate-limited)
 │   │   │   ├── favorites.js         # Favorite routes (JWT protected)
-│   │   │   └── stats.js             # Stats routes (JWT protected)
+│   │   │   ├── stats.js             # Stats routes (JWT protected)
+│   │   │   └── university.js        # University news route (JWT protected)
 │   │   └── app.js                   # Express app setup
 │   ├── tests/
 │   │   ├── listingService.test.js   # 31 unit tests
@@ -146,6 +148,22 @@ campusboard/
     │   └── main.js                  # App controller & event listeners
     └── vercel.json                  # Vercel routing + API proxy to Railway
 ```
+
+---
+
+## University Dashboard
+
+The dashboard includes a university-aware header section visible after login:
+
+- **University header card** — displays the institution name, logo, and quick access buttons (OBS, UZEM, Library, Mail)
+- **İlanlar / Haberler tabs** — tab-based navigation separating the bulletin board from university news; tab panels switch with a fade + slide transition
+- **Arel Haberleri carousel** — fetches the latest 9 articles from the university RSS feed; images are resolved via `og:image` meta tag per article page (not from the RSS feed directly, which was unreliable due to a WordPress gallery plugin embedding the same image for all same-day articles); results are cached in-memory for 15 minutes
+
+### University News API
+
+| Method | URL | Description | Protected |
+|--------|-----|-------------|-----------|
+| GET | `/api/university/news` | Latest 9 university news articles with title, link, date, and image | ✓ |
 
 ---
 
@@ -208,6 +226,12 @@ campusboard/
 |--------|-----|-------------|-----------|
 | GET | `/api/favorites` | List my favorite listings | ✓ |
 | POST | `/api/favorites/:listingId` | Toggle favorite (add/remove) | ✓ |
+
+### University — `/api/university`
+
+| Method | URL | Description | Protected |
+|--------|-----|-------------|-----------|
+| GET | `/api/university/news` | Latest 9 news articles (RSS + og:image per article, 15 min cache) | ✓ |
 
 ### Stats — `/api/stats`
 
@@ -324,6 +348,13 @@ Email, phone, and other types (social media, etc.) are auto-detected.
 - Toggle any listing as favorite (add/remove)
 - View favorites list
 - Favorites auto-removed when a listing is deleted
+
+### University Dashboard
+- University header card with institution name, logo, and quick access buttons (OBS, UZEM, Library, Mail)
+- İlanlar / Haberler tab system — default view is listings; switching to Haberler lazily loads the news carousel
+- News carousel: latest 9 articles from the RSS feed; images fetched via `og:image` per article page with 15-minute in-memory cache
+- Carousel supports wrap-around navigation and adapts to container width via CSS container queries
+- Tab panel transitions use fade + slight vertical slide animation
 
 ### Mobile UX
 - Dashboard header adapts to viewport: full labels on desktop (`Favorilerim`, `İlanlarım`, `Yeni İlan`), compact labels on mobile (`Favori`, `İlanlar`, `Yeni`)

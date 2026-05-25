@@ -17,6 +17,7 @@ const { FavoriteController } = require('./controllers/favoriteController');
 const { createFavoritesRouter } = require('./routes/favorites');
 const { StatsService } = require('./services/statsService');
 const { createStatsRouter } = require('./routes/stats');
+const { createUniversityRouter } = require('./routes/university');
 const { requireAuth } = require('./middleware/auth');
 const rateLimit = require('express-rate-limit');
 
@@ -124,6 +125,7 @@ async function createApp(dbPath) {
   app.use('/api/listings', authMiddleware, createListingsRouter(listingController));
   app.use('/api/favorites', authMiddleware, createFavoritesRouter(favoriteController));
   app.use('/api/stats', authMiddleware, createStatsRouter(statsService));
+  app.use('/api/university', authMiddleware, createUniversityRouter());
 
   app.get('/api', (req, res) => {
     res.json({ status: 'ok' });
