@@ -3605,9 +3605,9 @@ textarea { resize: vertical; min-height: 110px; }
   padding: 0;
   transition: color .15s, background .15s;
 }
-.card-fav-btn:hover { color: #f43f5e; background: #fff1f2; }
-.card-fav-btn--active { color: #f43f5e; }
-.card-fav-btn--active:hover { color: #be123c; }
+.card-fav-btn:hover { color: #6366f1; background: #eef2ff; }
+.card-fav-btn--active { color: #6366f1; }
+.card-fav-btn--active:hover { color: #4338ca; }
 
 /* ── Detail modal favorite button ──────────────────── */
 .detail-header-actions {
@@ -3629,9 +3629,9 @@ textarea { resize: vertical; min-height: 110px; }
   padding: 0;
   transition: color .15s, border-color .15s, background .15s;
 }
-.detail-fav-btn:hover { color: #f43f5e; border-color: #fda4af; background: #fff1f2; }
-.detail-fav-btn--active { color: #f43f5e; border-color: #fda4af; }
-.detail-fav-btn--active:hover { color: #be123c; }
+.detail-fav-btn:hover { color: #6366f1; border-color: #c7d2fe; background: #eef2ff; }
+.detail-fav-btn--active { color: #6366f1; border-color: #c7d2fe; }
+.detail-fav-btn--active:hover { color: #4338ca; }
 
 .detail-share-wrap { position: relative; }
 .detail-share-btn {
@@ -4232,8 +4232,8 @@ textarea { resize: vertical; min-height: 110px; }
 
 .dashboard-body .card-fav-btn:hover,
 .dashboard-body .card-fav-btn--active {
-  color: #7c3aed;
-  background: #ede9fe;
+  color: #6366f1;
+  background: #eef2ff;
 }
 
 .dashboard-body .empty-state {
