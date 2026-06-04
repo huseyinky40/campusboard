@@ -8,6 +8,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/assets/icon-192.png" />
   <meta name="theme-color" content="#7c3aed" />
+  <link rel="manifest" href="/manifest.json" />
   <link rel="canonical" href="https://campusboard.app/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -324,6 +325,11 @@
       }
 
     })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
