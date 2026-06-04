@@ -1063,6 +1063,118 @@ const App = (() => {
     });
   })();
 
+  // ── Date Picker ───────────────────────────────────
+  function initDatePicker() {
+    const hidden  = document.getElementById('form-expires-at');
+    const display = document.getElementById('dp-display');
+    const popup   = document.getElementById('dp-popup');
+    if (!display || !popup) return;
+
+    const MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    let viewYear, viewMonth, selectedISO = null;
+
+    function today0() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+
+    function isoToDate(iso) {
+      const [y,m,d] = iso.split('-').map(Number);
+      return new Date(y, m-1, d);
+    }
+
+    function toISO(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function formatDisplay(iso) {
+      const d = isoToDate(iso);
+      return `${String(d.getDate()).padStart(2,'0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function render() {
+      document.getElementById('dp-month-year').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+      const t   = today0();
+      const firstDay = new Date(viewYear, viewMonth, 1);
+      const startCol = (firstDay.getDay() + 6) % 7;
+      const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+      let html = '';
+      for (let i = 0; i < startCol; i++) html += '<span class="dp-cell"></span>';
+      for (let day = 1; day <= totalDays; day++) {
+        const d = new Date(viewYear, viewMonth, day);
+        const iso = toISO(d);
+        const past = d < t;
+        const sel  = iso === selectedISO;
+        const tod  = iso === toISO(t);
+        html += `<button type="button" class="dp-day${past?' dp-past':''}${sel?' dp-sel':''}${tod?' dp-today':''}"
+          data-iso="${iso}"${past?' disabled':''}>${day}</button>`;
+      }
+      document.getElementById('dp-grid').innerHTML = html;
+    }
+
+    function openPicker() {
+      const now = today0();
+      if (viewYear == null) { viewYear = now.getFullYear(); viewMonth = now.getMonth(); }
+      render();
+      popup.classList.remove('hidden');
+      display.setAttribute('aria-expanded', 'true');
+    }
+
+    function closePicker() {
+      popup.classList.add('hidden');
+      display.setAttribute('aria-expanded', 'false');
+    }
+
+    function setDate(iso) {
+      selectedISO = iso;
+      hidden.value = iso || '';
+      const label = display.querySelector('.dp-display-text');
+      label.textContent = iso ? formatDisplay(iso) : 'Tarih seçin';
+      display.classList.toggle('dp-has-value', !!iso);
+    }
+
+    display.addEventListener('click', e => {
+      e.stopPropagation();
+      popup.classList.contains('hidden') ? openPicker() : closePicker();
+    });
+    display.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+      if (e.key === 'Escape') closePicker();
+    });
+
+    document.getElementById('dp-prev').addEventListener('click', e => {
+      e.stopPropagation();
+      if (--viewMonth < 0) { viewMonth = 11; viewYear--; }
+      render();
+    });
+    document.getElementById('dp-next').addEventListener('click', e => {
+      e.stopPropagation();
+      if (++viewMonth > 11) { viewMonth = 0; viewYear++; }
+      render();
+    });
+
+    document.getElementById('dp-grid').addEventListener('click', e => {
+      const btn = e.target.closest('.dp-day:not(.dp-past)');
+      if (!btn) return;
+      setDate(btn.dataset.iso);
+      closePicker();
+      const err = document.getElementById('err-expires-at');
+      if (err) err.textContent = '';
+    });
+
+    document.getElementById('dp-clear').addEventListener('click', e => {
+      e.stopPropagation();
+      setDate(null);
+      closePicker();
+    });
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#date-picker-wrap')) closePicker();
+    });
+
+    window._dpSetDate = iso => {
+      if (iso) { const d = isoToDate(iso); viewYear = d.getFullYear(); viewMonth = d.getMonth(); }
+      setDate(iso || null);
+    };
+  }
+
   // ── Init ──────────────────────────────────────────
   function init() {
     initUser();
@@ -1227,15 +1339,7 @@ const App = (() => {
     initFsel('category', 'form-category');
     initFsel('faculty',  'form-faculty');
 
-    const expiresInput = document.getElementById('form-expires-at');
-    expiresInput.addEventListener('input', () => {
-      const digits = expiresInput.value.replace(/\D/g, '').slice(0, 8);
-      const parts = [];
-      if (digits.slice(0, 2)) parts.push(digits.slice(0, 2));
-      if (digits.slice(2, 4)) parts.push(digits.slice(2, 4));
-      if (digits.slice(4, 8)) parts.push(digits.slice(4, 8));
-      expiresInput.value = parts.join('/');
-    });
+    initDatePicker();
 
     document.getElementById('listing-form').addEventListener('submit', handleFormSubmit);
     document.getElementById('btn-form-cancel').addEventListener('click', closeFormAndReturn);

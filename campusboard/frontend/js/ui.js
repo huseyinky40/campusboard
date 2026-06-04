@@ -482,9 +482,8 @@ const UI = {
       });
     }
 
-    // expires_at: render as dd/mm/yyyy for the masked mobile-friendly field
-    document.getElementById('form-expires-at').value  =
-      isEdit && listing.expires_at ? formatDateForInput(listing.expires_at) : '';
+    // expires_at: date picker
+    if (window._dpSetDate) window._dpSetDate(isEdit && listing.expires_at ? listing.expires_at.slice(0, 10) : null);
 
     // Image preview
     const preview     = document.getElementById('img-upload-preview');
@@ -511,7 +510,7 @@ const UI = {
   },
 
   clearFormErrors() {
-    ['title', 'category', 'faculty', 'description', 'contact', 'expires-at'].forEach(f => {
+    ['title', 'category', 'faculty', 'description', 'contact'].forEach(f => {
       const err     = document.getElementById(`err-${f}`);
       const input   = document.getElementById(`form-${f}`);
       const trigger = document.getElementById(`fsel-${f}-btn`);
@@ -519,6 +518,8 @@ const UI = {
       if (input)   input.classList.remove('error');
       if (trigger) trigger.classList.remove('error');
     });
+    const errExpires = document.getElementById('err-expires-at');
+    if (errExpires) errExpires.textContent = '';
   },
 
   showFormErrors(errors) {
@@ -543,16 +544,15 @@ const UI = {
   },
 
   getFormData() {
-    const expiresRaw = document.getElementById('form-expires-at').value;
-    const expiresAt = normalizeDateInput(expiresRaw);
+    const expiresAt = document.getElementById('form-expires-at').value || null;
     return {
       title:       document.getElementById('form-title').value.trim(),
       category:    document.getElementById('form-category').value,
       faculty:     document.getElementById('form-faculty').value,
       description: document.getElementById('form-description').value.trim(),
       contact:     encodeContacts(),
-      expires_at:  expiresRaw ? expiresAt : null,
-      _expiresRaw: expiresRaw,
+      expires_at:  expiresAt,
+      _expiresRaw: expiresAt,
     };
   },
 
@@ -569,8 +569,6 @@ const UI = {
       errors.push('Geçersiz kategori');
     if (!data.faculty)
       errors.push('Geçersiz fakülte');
-    if (data._expiresRaw && !data.expires_at)
-      errors.push('Bitiş tarihi gg/aa/yyyy formatında olmalıdır');
     const _email = document.getElementById('form-contact-email')?.value.trim() || '';
     const _phone = document.getElementById('form-contact-phone')?.value.trim() || '';
     const _other = document.getElementById('form-contact-other')?.value.trim() || '';
