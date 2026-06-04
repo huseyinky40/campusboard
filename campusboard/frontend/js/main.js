@@ -1,5 +1,5 @@
 // Redirect to login if not authenticated
-if (!sessionStorage.getItem('cb_token')) {
+if (!localStorage.getItem('cb_token')) {
   window.location.href = '/login';
 }
 
@@ -139,7 +139,7 @@ const App = (() => {
   // ── Auth ──────────────────────────────────────────
   function initUser() {
     try {
-      const raw = sessionStorage.getItem('cb_user') || '{}';
+      const raw = localStorage.getItem('cb_user') || '{}';
       const user = JSON.parse(raw);
       document.getElementById('user-name').textContent = user.name || '';
       const avatarEl = document.getElementById('header-avatar');
@@ -165,8 +165,8 @@ const App = (() => {
   }
 
   function logout() {
-    sessionStorage.removeItem('cb_token');
-    sessionStorage.removeItem('cb_user');
+    localStorage.removeItem('cb_token');
+    localStorage.removeItem('cb_user');
     window.cbNav('/login');
   }
 
@@ -425,7 +425,7 @@ const App = (() => {
     try {
       const res = await Api.updateProfile(payload);
       const updated = res.data;
-      sessionStorage.setItem('cb_user', JSON.stringify(updated));
+      localStorage.setItem('cb_user', JSON.stringify(updated));
       initUser();
       closeProfile();
       UI.toast('Profil güncellendi', 'success');
@@ -1226,16 +1226,17 @@ const App = (() => {
       if (!_sharePopoverListing) return;
       const l = _sharePopoverListing;
       const url = `https://campusboard.app/app?ilan=${l.id}`;
-      const shareText = `${l.title}`;
 
-      if (navigator.share) {
-        try { await navigator.share({ title: l.title, text: shareText, url }); return; }
+      // Mobile: native share sheet
+      const isMobile = navigator.maxTouchPoints > 0 && window.innerWidth < 768;
+      if (isMobile && navigator.share) {
+        try { await navigator.share({ title: l.title, text: l.title, url }); return; }
         catch (err) { if (err.name === 'AbortError') return; }
       }
 
-      // Fallback: show popover
+      // Desktop / fallback: popover
       document.getElementById('btn-share-wa').href =
-        `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + url)}`;
+        `https://wa.me/?text=${encodeURIComponent(l.title + '\n' + url)}`;
       sharePopover.classList.toggle('hidden');
     });
 
