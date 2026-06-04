@@ -270,8 +270,7 @@ const UI = {
     const favActive = l.is_favorited ? 'card-fav-btn--active' : '';
     const favTitle  = l.is_favorited ? 'Favorilerden çıkar' : 'Favorilere ekle';
     return `
-      <div class="card ${l.status}${l.image ? ' card--has-img' : ''}" data-id="${l.id}" tabindex="0" role="button" aria-label="${escHtml(l.title)}">
-        ${l.image ? `<div class="card-img"><img src="${escHtml(l.image)}" alt="" loading="lazy" decoding="async"></div>` : ''}
+      <div class="card ${l.status}" data-id="${l.id}" tabindex="0" role="button" aria-label="${escHtml(l.title)}">
         <div class="card-top">
           <div class="card-badges">
             <span class="badge badge-${l.category}">${CATEGORY_LABELS[l.category] || l.category}</span>
@@ -286,6 +285,7 @@ const UI = {
             <span class="status-dot status-dot--${l.status}" title="${l.status === 'aktif' ? 'Aktif' : 'Kapandı'}"></span>
           </div>
         </div>
+        ${l.image ? `<div class="card-img"><img src="${escHtml(l.image)}" alt="" loading="lazy" decoding="async"></div>` : ''}
         <div class="card-title">${escHtml(l.title)}</div>
         <div class="card-desc">${escHtml(l.description)}</div>
         ${expiryBadgeHTML(l)}
@@ -324,6 +324,7 @@ const UI = {
 
     document.getElementById('detail-title').textContent = listing.title;
     document.getElementById('detail-meta').innerHTML = detailMetaHTML(listing);
+    if (window._setShareListing) window._setShareListing(listing);
 
     const imgWrap = document.getElementById('detail-image-wrap');
     const imgEl   = document.getElementById('detail-image');

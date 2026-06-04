@@ -1216,6 +1216,55 @@ const App = (() => {
     document.getElementById('modal-form-close').addEventListener('click', closeFormAndReturn);
     document.getElementById('modal-detail-close').addEventListener('click', () => UI.closeDetail());
 
+    // ── Share ─────────────────────────────────────────
+    let _sharePopoverListing = null;
+    const shareBtn    = document.getElementById('detail-share-btn');
+    const sharePopover = document.getElementById('share-popover');
+
+    shareBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!_sharePopoverListing) return;
+      const l = _sharePopoverListing;
+      const url = `https://campusboard.app/app?ilan=${l.id}`;
+      const shareText = `${l.title}`;
+
+      if (navigator.share) {
+        try { await navigator.share({ title: l.title, text: shareText, url }); return; }
+        catch (err) { if (err.name === 'AbortError') return; }
+      }
+
+      // Fallback: show popover
+      document.getElementById('btn-share-wa').href =
+        `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + url)}`;
+      sharePopover.classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-copy-link').addEventListener('click', async () => {
+      if (!_sharePopoverListing) return;
+      const url = `https://campusboard.app/app?ilan=${_sharePopoverListing.id}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        UI.toast('Link kopyalandı', 'success');
+      } catch {
+        UI.toast('Kopyalanamadı', 'error');
+      }
+      sharePopover.classList.add('hidden');
+    });
+
+    document.addEventListener('click', e => {
+      if (!sharePopover.classList.contains('hidden') &&
+          !e.target.closest('.detail-share-wrap')) {
+        sharePopover.classList.add('hidden');
+      }
+    });
+
+    // Expose setter so showDetail can update share listing
+    window._setShareListing = l => { _sharePopoverListing = l; sharePopover.classList.add('hidden'); };
+
+    // Deep link: ?ilan=ID
+    const _ilanParam = new URLSearchParams(location.search).get('ilan');
+    if (_ilanParam) openDetail(Number(_ilanParam));
+
     document.getElementById('modal-form').addEventListener('click', e => {
       if (e.target.id === 'modal-form') closeFormAndReturn();
     });

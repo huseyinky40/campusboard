@@ -1907,29 +1907,32 @@ input[type=text].search-input {
 
 /* ── Card ─────────────────────────────────────────── */
 /* Card image */
-.card--has-img { padding-top: 0; }
 .card-img {
-  margin: 0 -1px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: 10px;
   overflow: hidden;
-  aspect-ratio: 16/9;
+  aspect-ratio: 16/7;
   background: #f3f4f6;
+  border: 1px solid rgba(17, 24, 39, .07);
+  flex-shrink: 0;
 }
 .card-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 300ms ease;
+  transition: transform 320ms ease;
 }
-.card:hover .card-img img { transform: scale(1.03); }
+.card:hover .card-img img { transform: scale(1.04); }
 
 /* Detail modal image */
 .detail-image-wrap {
-  margin: 0 -1.75rem;
   aspect-ratio: 16/9;
   overflow: hidden;
+  border-radius: 14px;
   background: #f3f4f6;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(17, 24, 39, .08);
+  box-shadow: 0 4px 18px rgba(17, 24, 39, .09);
 }
 .detail-image-wrap img {
   width: 100%;
@@ -3629,6 +3632,58 @@ textarea { resize: vertical; min-height: 110px; }
 .detail-fav-btn:hover { color: #f43f5e; border-color: #fda4af; background: #fff1f2; }
 .detail-fav-btn--active { color: #f43f5e; border-color: #fda4af; }
 .detail-fav-btn--active:hover { color: #be123c; }
+
+.detail-share-wrap { position: relative; }
+.detail-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #6b7280;
+  padding: 0;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.detail-share-btn:hover { color: #6366f1; border-color: #c7d2fe; background: #eef2ff; }
+
+.share-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(17,24,39,.12);
+  padding: .35rem;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  min-width: 160px;
+  z-index: 50;
+}
+.share-popover-btn {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+}
+.share-popover-btn:hover { background: #f3f4f6; color: #111827; }
+.share-popover-wa { color: #16a34a; }
+.share-popover-wa:hover { background: #f0fdf4; color: #15803d; }
 
 /* ── Favorites button ───────────────────────────────── */
 .btn-fav {
