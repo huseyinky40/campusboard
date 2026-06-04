@@ -71,6 +71,7 @@ async function createPgAdapter(connectionString) {
     )
   `);
   await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS university_slug TEXT NOT NULL DEFAULT 'istanbul-arel-university'`);
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS image TEXT`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_university_slug ON users(university_slug)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_listings_university_slug ON listings(university_slug)`);
 

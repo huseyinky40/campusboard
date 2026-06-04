@@ -270,7 +270,8 @@ const UI = {
     const favActive = l.is_favorited ? 'card-fav-btn--active' : '';
     const favTitle  = l.is_favorited ? 'Favorilerden çıkar' : 'Favorilere ekle';
     return `
-      <div class="card ${l.status}" data-id="${l.id}" tabindex="0" role="button" aria-label="${escHtml(l.title)}">
+      <div class="card ${l.status}${l.image ? ' card--has-img' : ''}" data-id="${l.id}" tabindex="0" role="button" aria-label="${escHtml(l.title)}">
+        ${l.image ? `<div class="card-img"><img src="${escHtml(l.image)}" alt="" loading="lazy" decoding="async"></div>` : ''}
         <div class="card-top">
           <div class="card-badges">
             <span class="badge badge-${l.category}">${CATEGORY_LABELS[l.category] || l.category}</span>
@@ -323,6 +324,16 @@ const UI = {
 
     document.getElementById('detail-title').textContent = listing.title;
     document.getElementById('detail-meta').innerHTML = detailMetaHTML(listing);
+
+    const imgWrap = document.getElementById('detail-image-wrap');
+    const imgEl   = document.getElementById('detail-image');
+    if (listing.image) {
+      imgEl.src = listing.image;
+      imgWrap.classList.remove('hidden');
+    } else {
+      imgEl.src = '';
+      imgWrap.classList.add('hidden');
+    }
 
     const currentUser = (() => {
       try { return JSON.parse(localStorage.getItem('cb_user') || sessionStorage.getItem('cb_user') || '{}'); }
@@ -473,6 +484,23 @@ const UI = {
     // expires_at: render as dd/mm/yyyy for the masked mobile-friendly field
     document.getElementById('form-expires-at').value  =
       isEdit && listing.expires_at ? formatDateForInput(listing.expires_at) : '';
+
+    // Image preview
+    const preview     = document.getElementById('img-upload-preview');
+    const placeholder = document.getElementById('img-upload-placeholder');
+    const previewImg  = document.getElementById('img-preview-src');
+    const fileInput   = document.getElementById('form-image');
+    if (fileInput) fileInput.value = '';
+    if (isEdit && listing.image) {
+      previewImg.src = listing.image;
+      preview.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+    } else {
+      previewImg.src = '';
+      preview.classList.add('hidden');
+      placeholder.classList.remove('hidden');
+    }
+
     this.clearFormErrors();
     document.getElementById('modal-form').classList.remove('hidden');
   },

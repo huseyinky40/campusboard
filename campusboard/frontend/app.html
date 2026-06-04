@@ -392,6 +392,23 @@
           <textarea id="form-description" rows="4" maxlength="2000" placeholder="İlanınızı detaylıca açıklayın"></textarea>
           <span class="field-error" id="err-description"></span>
         </div>
+        <div class="form-group">
+          <label>Görsel <span class="form-label-hint">— isteğe bağlı, maks. 5 MB</span></label>
+          <div class="img-upload-area" id="img-upload-area">
+            <input type="file" id="form-image" accept="image/*" class="img-upload-input" tabindex="-1" />
+            <div class="img-upload-placeholder" id="img-upload-placeholder">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <span>Görsel seç veya buraya sürükle</span>
+              <small>JPG, PNG, WebP — maks. 5 MB</small>
+            </div>
+            <div class="img-upload-preview hidden" id="img-upload-preview">
+              <img id="img-preview-src" alt="Görsel önizleme" />
+              <button type="button" class="img-remove-btn" id="img-remove-btn" aria-label="Görseli kaldır">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
         <div class="form-group contact-method-block">
           <label class="contact-method-label">İletişim <span class="required">*</span></label>
           <div class="contact-fields">
@@ -459,6 +476,9 @@
             </button>
             <button class="modal-close" id="modal-detail-close">&times;</button>
           </div>
+        </div>
+        <div class="detail-image-wrap hidden" id="detail-image-wrap">
+          <img id="detail-image" alt="" loading="lazy" decoding="async" />
         </div>
         <div class="detail-header">
           <p class="detail-overline" id="detail-overline"></p>

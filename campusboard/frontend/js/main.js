@@ -128,6 +128,7 @@ const App = (() => {
   let _formReturnToMLD = false;
 
   function closeFormAndReturn() {
+    _pendingImage = null;
     UI.closeForm();
     if (_formReturnToMLD) {
       _formReturnToMLD = false;
@@ -259,12 +260,91 @@ const App = (() => {
   }
 
   // ── Form submit ───────────────────────────────────
+  // ── İlan görseli ──────────────────────────────────
+  let _pendingImage = null; // null = no image, string = base64
+
+  function compressImage(file, maxWidth = 900, quality = 0.78) {
+    return new Promise((resolve, reject) => {
+      if (file.size > 5 * 1024 * 1024) { reject(new Error('max_size')); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function initImageUpload() {
+    const input       = document.getElementById('form-image');
+    const area        = document.getElementById('img-upload-area');
+    const placeholder = document.getElementById('img-upload-placeholder');
+    const preview     = document.getElementById('img-upload-preview');
+    const previewImg  = document.getElementById('img-preview-src');
+    const removeBtn   = document.getElementById('img-remove-btn');
+    if (!input) return;
+
+    function showPreview(src) {
+      previewImg.src = src;
+      preview.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+    }
+    function clearPreview() {
+      previewImg.src = '';
+      input.value = '';
+      preview.classList.add('hidden');
+      placeholder.classList.remove('hidden');
+      _pendingImage = null;
+    }
+
+    area.addEventListener('click', e => {
+      if (!e.target.closest('.img-remove-btn')) input.click();
+    });
+
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('drag-over'); });
+    area.addEventListener('dragleave', () => area.classList.remove('drag-over'));
+    area.addEventListener('drop', async e => {
+      e.preventDefault();
+      area.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) await handleFile(file);
+    });
+
+    input.addEventListener('change', async () => {
+      if (input.files[0]) await handleFile(input.files[0]);
+    });
+
+    removeBtn.addEventListener('click', e => { e.stopPropagation(); clearPreview(); });
+
+    async function handleFile(file) {
+      try {
+        const base64 = await compressImage(file);
+        _pendingImage = base64;
+        showPreview(base64);
+      } catch (err) {
+        if (err.message === 'max_size') UI.toast('Görsel 5 MB\'den büyük olamaz', 'error');
+        else UI.toast('Görsel yüklenemedi', 'error');
+      }
+    }
+  }
+
   async function handleFormSubmit(e) {
     e.preventDefault();
     const data = UI.getFormData();
     const errors = UI.validateForm(data);
     if (errors.length > 0) { UI.showFormErrors(errors); return; }
     delete data._expiresRaw;
+    data.image = _pendingImage;
 
     const id = document.getElementById('form-id').value;
     try {
@@ -673,6 +753,7 @@ const App = (() => {
                 const res = await Api.getListing(id);
                 if (!res) return;
                 _formReturnToMLD = true;
+                _pendingImage = res.data.image || null;
                 close();
                 UI.openForm(res.data);
               } catch { UI.toast('İlan yüklenemedi', 'error'); }
@@ -965,6 +1046,7 @@ const App = (() => {
     loadListings();
     FAV.init();
     MLD.init();
+    initImageUpload();
 
     initScrollIndicators();
 

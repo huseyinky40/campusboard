@@ -216,8 +216,8 @@ class ListingService {
     const universitySlug = await this.getUserUniversitySlug(userId);
 
     const result = await this.db.run(`
-      INSERT INTO listings (user_id, title, description, category, faculty, university_slug, contact, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+      INSERT INTO listings (user_id, title, description, category, faculty, university_slug, contact, expires_at, image)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
     `, [
       userId,
       data.title.trim(),
@@ -227,6 +227,7 @@ class ListingService {
       universitySlug,
       data.contact.trim(),
       data.expires_at || null,
+      data.image || null,
     ]);
 
     return this.getById(userId, result.rows[0].id);
@@ -240,7 +241,7 @@ class ListingService {
     await this.db.run(`
       UPDATE listings
       SET title = ?, description = ?, category = ?, faculty = ?,
-          contact = ?, expires_at = ?, updated_at = NOW()
+          contact = ?, expires_at = ?, image = ?, updated_at = NOW()
       WHERE id = ? AND user_id = ?
     `, [
       data.title.trim(),
@@ -249,6 +250,7 @@ class ListingService {
       data.faculty,
       data.contact.trim(),
       data.expires_at || null,
+      data.image !== undefined ? data.image : null,
       id,
       userId,
     ]);
