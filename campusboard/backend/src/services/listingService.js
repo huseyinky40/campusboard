@@ -19,21 +19,17 @@ class ListingService {
   }
 
   async runCleanup() {
-    const now = new Date().toISOString().slice(0, 10);
-
+    // Delete listings whose expires_at has passed (regardless of status)
     await this.db.run(`
-      UPDATE listings
-      SET status    = 'kapandi',
-          closed_at = NOW(),
-          updated_at = NOW()
-      WHERE status = 'aktif'
-        AND expires_at IS NOT NULL
-        AND expires_at < ?
-    `, [now]);
+      DELETE FROM listings
+      WHERE expires_at IS NOT NULL AND expires_at < NOW()
+    `, []);
 
+    // Delete unlimited (no expires_at) closed listings after 30 days
     await this.db.run(`
       DELETE FROM listings
       WHERE status = 'kapandi'
+        AND expires_at IS NULL
         AND closed_at IS NOT NULL
         AND closed_at < NOW() - INTERVAL '${CLOSED_RETENTION_DAYS} days'
     `, []);

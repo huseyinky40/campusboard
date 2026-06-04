@@ -264,8 +264,12 @@ const App = (() => {
       const res = await Api.getListing(id);
       if (!res) return;
       UI.showDetail(res.data);
-    } catch {
-      UI.toast('İlan yüklenemedi', 'error');
+    } catch (err) {
+      if (err?.status === 404) {
+        document.getElementById('modal-not-found').classList.remove('hidden');
+      } else {
+        UI.toast('İlan yüklenemedi', 'error');
+      }
     }
   }
 
@@ -648,9 +652,14 @@ const App = (() => {
       if (dropdown) dropdown.classList.remove('open');
     }
 
-    function _daysUntilDeletion(closedAt) {
-      if (!closedAt) return null;
-      const elapsed = (Date.now() - new Date(closedAt.replace(' ', 'T')).getTime()) / 86400000;
+    function _daysUntilDeletion(listing) {
+      if (listing.expires_at) {
+        // Listings with expires_at: deleted when date arrives
+        return Math.max(0, Math.ceil((new Date(listing.expires_at) - Date.now()) / 86400000));
+      }
+      // Unlimited listings: deleted 30 days after closing
+      if (!listing.closed_at) return null;
+      const elapsed = (Date.now() - new Date(listing.closed_at.replace(' ', 'T')).getTime()) / 86400000;
       return Math.max(0, Math.ceil(30 - elapsed));
     }
 
@@ -696,7 +705,7 @@ const App = (() => {
 
         let deleteCdInline = '';
         if (!isAktif) {
-          const days = _daysUntilDeletion(l.closed_at);
+          const days = _daysUntilDeletion(l);
           if (days !== null) {
             let mod, text;
             if      (days <= 0) { mod = 'urgent'; text = 'Yakında silinecek'; }
@@ -775,7 +784,9 @@ const App = (() => {
               if (next === 'kapandi') {
                 const ok = await showConfirm({
                   title: 'İlanı Yayından Kaldır',
-                  message: 'Kapatılan ilanlar 30 gün boyunca "Kapandı" listesinde görünür ve bu süre içinde tekrar açılabilir. 30 gün sonra kalıcı olarak silinir.',
+                  message: l.expires_at
+                    ? `İlan yayından kalkacak. Bitiş tarihi (${new Date(l.expires_at).toLocaleDateString('tr-TR')}) geldiğinde kalıcı olarak silinecek.`
+                    : 'Kapatılan ilanlar 30 gün boyunca "Kapandı" listesinde görünür ve bu süre içinde tekrar açılabilir. 30 gün sonra kalıcı olarak silinir.',
                   okLabel: 'Yayından Kaldır',
                   variant: 'warning',
                 });
@@ -1230,6 +1241,12 @@ const App = (() => {
     document.getElementById('btn-form-cancel').addEventListener('click', closeFormAndReturn);
     document.getElementById('modal-form-close').addEventListener('click', closeFormAndReturn);
     document.getElementById('modal-detail-close').addEventListener('click', () => UI.closeDetail());
+    document.getElementById('modal-not-found-close').addEventListener('click', () => {
+      document.getElementById('modal-not-found').classList.add('hidden');
+    });
+    document.getElementById('modal-not-found').addEventListener('click', e => {
+      if (e.target.id === 'modal-not-found') document.getElementById('modal-not-found').classList.add('hidden');
+    });
 
     // ── Share ─────────────────────────────────────────
     let _sharePopoverListing = null;
@@ -1294,6 +1311,7 @@ const App = (() => {
       UI.closeDetail();
       closeProfile();
       MLD.close();
+      document.getElementById('modal-not-found').classList.add('hidden');
     });
   }
 

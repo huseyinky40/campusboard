@@ -2347,6 +2347,27 @@ input[type=date]:focus {
   flex-shrink: 0;
 }
 /* Detail modal */
+.modal-not-found {
+  max-width: 340px;
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: .75rem;
+}
+.not-found-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.not-found-title { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0; }
+.not-found-desc  { font-size: .85rem; color: #6b7280; margin: 0; line-height: 1.5; }
+.not-found-close { margin-top: .25rem; align-self: stretch; }
+
 .modal-detail { max-width: 620px; overflow: hidden; padding: 0; display: flex; flex-direction: column; }
 .modal-detail .modal-scroll-body { padding: 2rem; }
 .modal-detail .modal-header { margin-bottom: .5rem; }
