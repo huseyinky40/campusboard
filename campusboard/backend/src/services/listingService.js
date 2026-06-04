@@ -264,8 +264,12 @@ class ListingService {
     if (!await this.getOwnedById(userId, id)) return null;
 
     const closedAt = status === 'kapandi' ? 'NOW()' : 'NULL';
+    // When re-opening, clear expires_at if it's already in the past — otherwise runCleanup immediately closes it again
+    const clearExpired = status === 'aktif'
+      ? ', expires_at = CASE WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN NULL ELSE expires_at END'
+      : '';
     await this.db.run(
-      `UPDATE listings SET status = ?, closed_at = ${closedAt}, updated_at = NOW() WHERE id = ? AND user_id = ?`,
+      `UPDATE listings SET status = ?, closed_at = ${closedAt}${clearExpired}, updated_at = NOW() WHERE id = ? AND user_id = ?`,
       [status, id, userId]
     );
 
