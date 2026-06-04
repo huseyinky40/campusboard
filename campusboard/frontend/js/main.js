@@ -4,6 +4,11 @@ if (!localStorage.getItem('cb_token')) {
   window.location.href = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
 }
 
+// Cross-tab sync: logout in one tab → logout all tabs
+window.addEventListener('storage', e => {
+  if (e.key === 'cb_token' && !e.newValue) window.location.href = '/login';
+});
+
 // ── Form custom select helpers ─────────────────────────
 const FSEL_LABELS = {
   category: { '': 'Seçin...', 'ders-notu': 'Ders Notu', 'etkinlik': 'Etkinlik', 'staj': 'Staj', 'ikinci-el': 'İkinci El', 'kayip-bulundu': 'Kayıp/Bulundu', 'genel': 'Genel' },

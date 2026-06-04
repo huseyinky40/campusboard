@@ -378,6 +378,11 @@
         btn.textContent = 'Doğrulama kodu gönder';
       }
     });
+
+    // Cross-tab sync: login in another tab → redirect this login page to dashboard
+    window.addEventListener('storage', e => {
+      if (e.key === 'cb_token' && e.newValue) window.location.href = '/app';
+    });
   </script>
 </body>
 </html>
