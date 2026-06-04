@@ -1,6 +1,7 @@
-// Redirect to login if not authenticated
+// Redirect to login if not authenticated — preserve current URL for post-login redirect
 if (!localStorage.getItem('cb_token')) {
-  window.location.href = '/login';
+  const redirect = location.search ? location.pathname + location.search : '';
+  window.location.href = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
 }
 
 // ── Form custom select helpers ─────────────────────────

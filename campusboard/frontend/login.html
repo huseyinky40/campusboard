@@ -333,14 +333,15 @@
         localStorage.setItem('cb_user',  JSON.stringify(data.user));
         isNavigating = true;
         btnSub.textContent = 'Pano hazırlanıyor...';
+        const redirectTo = new URLSearchParams(location.search).get('redirect') || '/app';
         if (reduceMotion) {
-          window.location.href = '/app';
+          window.location.href = redirectTo;
           return;
         }
         document.body.classList.add('page-transitioning');
         routeTransition.classList.add('active');
         window.setTimeout(() => {
-          window.location.href = '/app';
+          window.location.href = redirectTo;
         }, 520);
       } catch {
         showError('Sunucuya bağlanılamadı. Lütfen tekrar deneyin.');
