@@ -9,6 +9,10 @@ window.addEventListener('storage', e => {
   if (e.key === 'cb_token' && !e.newValue) window.location.href = '/login';
 });
 
+// Cross-tab data sync via BroadcastChannel
+const _bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('campusboard') : null;
+function _broadcast() { _bc?.postMessage({ type: 'refresh' }); }
+
 // ── Form custom select helpers ─────────────────────────
 const FSEL_LABELS = {
   category: { '': 'Seçin...', 'ders-notu': 'Ders Notu', 'etkinlik': 'Etkinlik', 'staj': 'Staj', 'ikinci-el': 'İkinci El', 'kayip-bulundu': 'Kayıp/Bulundu', 'genel': 'Genel' },
@@ -363,6 +367,7 @@ const App = (() => {
       }
       closeFormAndReturn();
       loadListings();
+      _broadcast();
     } catch (err) {
       const errors = err?.data?.errors;
       if (errors) UI.showFormErrors(errors);
@@ -473,6 +478,7 @@ const App = (() => {
       }
 
       UI.toast(isFav ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı', isFav ? 'success' : 'error');
+      _broadcast();
     } catch {
       UI.toast('İşlem başarısız', 'error');
     }
@@ -786,7 +792,7 @@ const App = (() => {
               try {
                 await Api.updateStatus(id, next);
                 UI.toast(next === 'kapandi' ? 'İlan yayından kaldırıldı' : 'İlan yeniden açıldı', next === 'kapandi' ? 'error' : 'success');
-                loadListings();
+                loadListings(); _broadcast();
                 await _load();
               } catch { UI.toast('Durum güncellenemedi', 'error'); }
 
@@ -801,7 +807,7 @@ const App = (() => {
               try {
                 await Api.deleteListing(id);
                 UI.toast('İlan silindi', 'error');
-                loadListings();
+                loadListings(); _broadcast();
                 await _load();
               } catch { UI.toast('Silme işlemi başarısız', 'error'); }
             }
@@ -1053,6 +1059,9 @@ const App = (() => {
     FAV.init();
     MLD.init();
     initImageUpload();
+
+    // Cross-tab data refresh
+    if (_bc) _bc.onmessage = () => loadListings();
 
     initScrollIndicators();
 
