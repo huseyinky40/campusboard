@@ -168,6 +168,7 @@ function createSqliteAdapter() {
       expires_at  TEXT,
       closed_at   TEXT,
       view_count  INTEGER NOT NULL DEFAULT 0,
+      image       TEXT,
       created_at  TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );

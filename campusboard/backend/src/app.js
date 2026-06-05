@@ -34,9 +34,11 @@ const swaggerOptions = {
     },
     servers: [{ url: 'http://localhost:3000', description: 'Geliştirme Sunucusu' }],
     tags: [
-      { name: 'Auth', description: 'Kimlik doğrulama' },
-      { name: 'Listings', description: 'İlan işlemleri (JWT gerekli)' },
-      { name: 'Meta', description: 'Kategori ve fakülte listeleri' },
+      { name: 'Auth',      description: 'Kimlik doğrulama' },
+      { name: 'Listings',  description: 'İlan işlemleri (JWT gerekli)' },
+      { name: 'Comments',  description: 'Yorum işlemleri (JWT gerekli)' },
+      { name: 'Favorites', description: 'Favori işlemleri (JWT gerekli)' },
+      { name: 'Meta',      description: 'Kategori ve fakülte listeleri' },
     ],
     components: {
       securitySchemes: {
