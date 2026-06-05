@@ -960,7 +960,7 @@ const App = (() => {
       const deleteBtn = canDelete
         ? `<button class="comment-delete-btn" data-comment-id="${c.id}" aria-label="Sil" title="Sil">${_trashSVG}</button>`
         : '';
-      const replyBtn = !isReply
+      const replyBtn = (!isReply && _currentUserId === _listingOwnerId)
         ? `<button class="comment-reply-btn" data-comment-id="${c.id}" data-author="${escHtml(c.author_name || '')}" aria-label="Yanıtla">${_replySVG} Yanıtla</button>`
         : '';
       return `
