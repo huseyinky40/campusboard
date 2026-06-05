@@ -15,6 +15,9 @@ const { createAuthRouter } = require('./routes/auth');
 const { FavoriteService } = require('./services/favoriteService');
 const { FavoriteController } = require('./controllers/favoriteController');
 const { createFavoritesRouter } = require('./routes/favorites');
+const { CommentService } = require('./services/commentService');
+const { CommentController } = require('./controllers/commentController');
+const { createCommentsRouter } = require('./routes/comments');
 const { StatsService } = require('./services/statsService');
 const { createStatsRouter } = require('./routes/stats');
 const { createUniversityRouter } = require('./routes/university');
@@ -74,6 +77,9 @@ async function createApp(dbPath) {
   const favoriteService = new FavoriteService(db);
   const favoriteController = new FavoriteController(favoriteService);
 
+  const commentService = new CommentService(db);
+  const commentController = new CommentController(commentService);
+
   const statsService = new StatsService(db);
 
   const authMiddleware = requireAuth(authService);
@@ -123,6 +129,7 @@ async function createApp(dbPath) {
   app.use('/api', apiRateLimit);
   app.use('/api/auth', authRateLimit, createAuthRouter(authController, authService));
   app.use('/api/listings', authMiddleware, createListingsRouter(listingController));
+  app.use('/api/listings', authMiddleware, createCommentsRouter(commentController));
   app.use('/api/favorites', authMiddleware, createFavoritesRouter(favoriteController));
   app.use('/api/stats', authMiddleware, createStatsRouter(statsService));
   app.use('/api/university', authMiddleware, createUniversityRouter());

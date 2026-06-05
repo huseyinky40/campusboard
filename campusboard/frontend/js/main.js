@@ -264,6 +264,7 @@ const App = (() => {
       const res = await Api.getListing(id);
       if (!res) return;
       UI.showDetail(res.data);
+      COMMENTS.load(res.data.id, res.data.user_id);
     } catch (err) {
       if (err?.status === 404) {
         document.getElementById('modal-not-found').classList.remove('hidden');
@@ -931,6 +932,212 @@ const App = (() => {
     return { open, close, init };
   })();
 
+  // ── Yorumlar ──────────────────────────────────────
+  const COMMENTS = (() => {
+    let _listingId      = null;
+    let _listingOwnerId = null;
+    let _currentUserId  = null;
+
+    function _timeAgo(dateStr) {
+      const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+      if (diff <  60)   return 'Az önce';
+      if (diff <  3600) return `${Math.floor(diff / 60)} dakika önce`;
+      if (diff <  86400) return `${Math.floor(diff / 3600)} saat önce`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)} gün önce`;
+      return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function _render(comments) {
+      const list    = document.getElementById('comments-list');
+      const countEl = document.getElementById('comments-count');
+      if (!list) return;
+
+      if (countEl) countEl.textContent = comments.length ? `(${comments.length})` : '';
+
+      if (comments.length === 0) {
+        list.innerHTML = `
+          <div class="comments-empty">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="#c4b5fd" stroke-width="1.3" stroke-linejoin="round"/>
+            </svg>
+            <span>Henüz yorum yok. İlk yorumu sen yap!</span>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = comments.map(c => {
+        const canDelete = c.user_id === _currentUserId || _listingOwnerId === _currentUserId;
+        const deleteBtn = canDelete
+          ? `<button class="comment-delete-btn" data-comment-id="${c.id}" aria-label="Yorumu sil" title="Sil">
+               <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                 <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                 <path d="M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+               </svg>
+             </button>`
+          : '';
+        return `
+          <div class="comment-item" data-id="${c.id}">
+            <div class="comment-avatar">${avatarHTML(c.author_name, c.author_avatar, 28)}</div>
+            <div class="comment-body">
+              <div class="comment-meta">
+                <span class="comment-author">${escHtml(c.author_name || '?')}</span>
+                <span class="comment-time">${_timeAgo(c.created_at)}</span>
+                ${deleteBtn}
+              </div>
+              <div class="comment-content">${escHtml(c.content)}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      list.querySelectorAll('.comment-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => _delete(Number(btn.dataset.commentId)));
+      });
+    }
+
+    async function load(listingId, listingOwnerId) {
+      _listingId      = listingId;
+      _listingOwnerId = listingOwnerId;
+      try {
+        const raw = localStorage.getItem('cb_user') || '{}';
+        _currentUserId = JSON.parse(raw).id || null;
+      } catch { _currentUserId = null; }
+
+      const list = document.getElementById('comments-list');
+      if (list) list.innerHTML = '<div class="comments-loading"><span class="comments-spinner"></span></div>';
+      const countEl = document.getElementById('comments-count');
+      if (countEl) countEl.textContent = '';
+
+      // Reset input
+      const input = document.getElementById('comment-input');
+      const btn   = document.getElementById('comment-submit-btn');
+      if (input) { input.value = ''; input.style.height = ''; }
+      if (btn)   btn.disabled = true;
+
+      try {
+        const res = await Api.getComments(listingId);
+        _render(res.comments || []);
+      } catch {
+        if (list) list.innerHTML = '<div class="comments-empty"><span>Yorumlar yüklenemedi.</span></div>';
+      }
+    }
+
+    async function _delete(commentId) {
+      try {
+        await Api.deleteComment(_listingId, commentId);
+        const item = document.querySelector(`.comment-item[data-id="${commentId}"]`);
+        if (item) {
+          item.style.opacity = '0';
+          item.style.transition = 'opacity 0.2s';
+          setTimeout(() => {
+            item.remove();
+            // Recount
+            const remaining = document.querySelectorAll('.comment-item').length;
+            const countEl = document.getElementById('comments-count');
+            if (countEl) countEl.textContent = remaining ? `(${remaining})` : '';
+            if (remaining === 0) {
+              const list = document.getElementById('comments-list');
+              if (list) list.innerHTML = `
+                <div class="comments-empty">
+                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="#c4b5fd" stroke-width="1.3" stroke-linejoin="round"/>
+                  </svg>
+                  <span>Henüz yorum yok. İlk yorumu sen yap!</span>
+                </div>`;
+            }
+          }, 200);
+        }
+      } catch {
+        UI.toast('Yorum silinemedi', 'error');
+      }
+    }
+
+    async function submit() {
+      if (!_listingId) return;
+      const input = document.getElementById('comment-input');
+      const btn   = document.getElementById('comment-submit-btn');
+      const content = (input?.value || '').trim();
+      if (content.length < 2) return;
+
+      btn.disabled = true;
+      btn.classList.add('comment-submit-btn--sending');
+      try {
+        const res = await Api.createComment(_listingId, content);
+        input.value = '';
+        input.style.height = '';
+        input.dispatchEvent(new Event('input')); // reset textarea height
+
+        // Inject the new comment into the list without full reload
+        const list = document.getElementById('comments-list');
+        const empty = list?.querySelector('.comments-empty');
+        if (empty) empty.remove();
+
+        const c = res.data;
+        const canDelete = true; // always can delete own
+        const newItem = document.createElement('div');
+        newItem.className = 'comment-item comment-item--new';
+        newItem.dataset.id = c.id;
+        newItem.innerHTML = `
+          <div class="comment-avatar">${avatarHTML(c.author_name, c.author_avatar, 28)}</div>
+          <div class="comment-body">
+            <div class="comment-meta">
+              <span class="comment-author">${escHtml(c.author_name || '?')}</span>
+              <span class="comment-time">Az önce</span>
+              <button class="comment-delete-btn" data-comment-id="${c.id}" aria-label="Yorumu sil" title="Sil">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="comment-content">${escHtml(c.content)}</div>
+          </div>`;
+
+        newItem.querySelector('.comment-delete-btn').addEventListener('click', () => _delete(c.id));
+        list?.appendChild(newItem);
+        // Scroll to new comment
+        newItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        // Update count
+        const total = document.querySelectorAll('.comment-item').length;
+        const countEl = document.getElementById('comments-count');
+        if (countEl) countEl.textContent = `(${total})`;
+      } catch (err) {
+        const msg = err?.data?.errors?.[0] || 'Yorum gönderilemedi';
+        UI.toast(msg, 'error');
+        btn.disabled = false;
+      } finally {
+        btn.classList.remove('comment-submit-btn--sending');
+      }
+    }
+
+    function init() {
+      const input = document.getElementById('comment-input');
+      const btn   = document.getElementById('comment-submit-btn');
+      if (!input || !btn) return;
+
+      // Enable/disable send button + auto-resize textarea
+      input.addEventListener('input', () => {
+        const hasContent = input.value.trim().length >= 2;
+        btn.disabled = !hasContent;
+        // Auto-resize
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      });
+
+      // Submit on Enter (Shift+Enter = new line)
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (!btn.disabled) submit();
+        }
+      });
+
+      btn.addEventListener('click', submit);
+    }
+
+    return { load, init };
+  })();
+
   // ── Üniversite Haberleri ───────────────────────────
   async function loadUniversityNews() {
     const track   = document.getElementById('uni-news-track');
@@ -1181,6 +1388,7 @@ const App = (() => {
     loadListings();
     FAV.init();
     MLD.init();
+    COMMENTS.init();
     initImageUpload();
 
     // Cross-tab data refresh

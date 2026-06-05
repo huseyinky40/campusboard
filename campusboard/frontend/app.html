@@ -539,6 +539,30 @@
           <div id="detail-description" class="detail-description"></div>
         </div>
         <div class="detail-contact-box" id="detail-contact-box"></div>
+
+        <!-- YORUMLAR -->
+        <div class="detail-comments-section" id="detail-comments-section">
+          <div class="comments-header">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+            <span class="comments-heading">Yorumlar</span>
+            <span class="comments-count" id="comments-count"></span>
+          </div>
+          <div class="comments-list" id="comments-list">
+            <div class="comments-loading" id="comments-loading">
+              <span class="comments-spinner"></span>
+            </div>
+          </div>
+          <div class="comments-input-row" id="comments-input-row">
+            <textarea id="comment-input" class="comment-textarea" placeholder="Soru veya yorum yaz..." rows="1" maxlength="500"></textarea>
+            <button class="comment-submit-btn" id="comment-submit-btn" aria-label="Yorum gönder" disabled>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M14 8H2M14 8L9 3M14 8l-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
