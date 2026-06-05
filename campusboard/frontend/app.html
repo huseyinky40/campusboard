@@ -554,13 +554,17 @@
               <span class="comments-spinner"></span>
             </div>
           </div>
-          <div class="comments-input-row" id="comments-input-row">
-            <textarea id="comment-input" class="comment-textarea" placeholder="Soru veya yorum yaz..." rows="1" maxlength="500"></textarea>
-            <button class="comment-submit-btn" id="comment-submit-btn" aria-label="Yorum gönder" disabled>
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M14 8H2M14 8L9 3M14 8l-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+          <div class="comments-input-wrap">
+            <textarea id="comment-input" class="comment-textarea" placeholder="Soru sor veya yorum yaz..." rows="2" maxlength="500"></textarea>
+            <div class="comments-input-actions">
+              <span class="comment-char-count" id="comment-char-count">0 / 500</span>
+              <button class="comment-submit-btn" id="comment-submit-btn" disabled>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M2 8h12M9 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Gönder
+              </button>
+            </div>
           </div>
         </div>
       </div>

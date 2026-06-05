@@ -1008,10 +1008,12 @@ const App = (() => {
       if (countEl) countEl.textContent = '';
 
       // Reset input
-      const input = document.getElementById('comment-input');
-      const btn   = document.getElementById('comment-submit-btn');
+      const input     = document.getElementById('comment-input');
+      const btn       = document.getElementById('comment-submit-btn');
+      const charCount = document.getElementById('comment-char-count');
       if (input) { input.value = ''; input.style.height = ''; }
       if (btn)   btn.disabled = true;
+      if (charCount) { charCount.textContent = '0 / 500'; charCount.style.color = ''; }
 
       try {
         const res = await Api.getComments(listingId);
@@ -1064,6 +1066,8 @@ const App = (() => {
         const res = await Api.createComment(_listingId, content);
         input.value = '';
         input.style.height = '';
+        const cc = document.getElementById('comment-char-count');
+        if (cc) { cc.textContent = '0 / 500'; cc.style.color = ''; }
         input.dispatchEvent(new Event('input')); // reset textarea height
 
         // Inject the new comment into the list without full reload
@@ -1115,13 +1119,20 @@ const App = (() => {
       const btn   = document.getElementById('comment-submit-btn');
       if (!input || !btn) return;
 
-      // Enable/disable send button + auto-resize textarea
+      const charCount = document.getElementById('comment-char-count');
+
+      // Enable/disable send button + auto-resize textarea + char count
       input.addEventListener('input', () => {
+        const len = input.value.length;
         const hasContent = input.value.trim().length >= 2;
         btn.disabled = !hasContent;
+        if (charCount) {
+          charCount.textContent = `${len} / 500`;
+          charCount.style.color = len > 450 ? '#f59e0b' : '';
+        }
         // Auto-resize
         input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
       });
 
       // Submit on Enter (Shift+Enter = new line)
