@@ -18,7 +18,7 @@ class CommentService {
     if (!listing) throw { type: 'not_found' };
 
     const comments = await this.db.all(`
-      SELECT c.id, c.content, c.created_at, c.user_id,
+      SELECT c.id, c.parent_id, c.content, c.created_at, c.user_id,
              u.name AS author_name, u.avatar AS author_avatar
       FROM comments c
       JOIN users u ON u.id = c.user_id
@@ -29,7 +29,7 @@ class CommentService {
     return { comments, listing_owner_id: listing.user_id };
   }
 
-  async create(userId, listingId, content) {
+  async create(userId, listingId, content, parentId = null) {
     const trimmed = (content || '').trim();
     if (trimmed.length < 2)
       throw { type: 'validation', errors: ['Yorum en az 2 karakter olmalıdır'] };
@@ -43,14 +43,23 @@ class CommentService {
     );
     if (!listing) throw { type: 'not_found' };
 
+    // Validate parent belongs to same listing
+    if (parentId) {
+      const parent = await this.db.get(
+        'SELECT id FROM comments WHERE id = ? AND listing_id = ?',
+        [parentId, listingId]
+      );
+      if (!parent) throw { type: 'validation', errors: ['Geçersiz yanıt hedefi'] };
+    }
+
     const result = await this.db.run(
-      'INSERT INTO comments (listing_id, user_id, content) VALUES (?, ?, ?) RETURNING id',
-      [listingId, userId, trimmed]
+      'INSERT INTO comments (listing_id, user_id, parent_id, content) VALUES (?, ?, ?, ?) RETURNING id',
+      [listingId, userId, parentId || null, trimmed]
     );
     const id = result.rows[0].id;
 
     return this.db.get(`
-      SELECT c.id, c.content, c.created_at, c.user_id,
+      SELECT c.id, c.parent_id, c.content, c.created_at, c.user_id,
              u.name AS author_name, u.avatar AS author_avatar
       FROM comments c
       JOIN users u ON u.id = c.user_id

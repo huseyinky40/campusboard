@@ -937,14 +937,64 @@ const App = (() => {
     let _listingId      = null;
     let _listingOwnerId = null;
     let _currentUserId  = null;
+    let _replyingTo     = null; // { id, authorName }
 
     function _timeAgo(dateStr) {
       const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-      if (diff <  60)   return 'Az önce';
-      if (diff <  3600) return `${Math.floor(diff / 60)} dakika önce`;
+      if (diff <  60)    return 'Az önce';
+      if (diff <  3600)  return `${Math.floor(diff / 60)} dk önce`;
       if (diff <  86400) return `${Math.floor(diff / 3600)} saat önce`;
       if (diff < 604800) return `${Math.floor(diff / 86400)} gün önce`;
       return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    const _trashSVG = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const _replySVG = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8l4-4v2.5c4 0 7 1.5 8 5.5-1.5-3-4-4-8-4V10L2 8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+
+    function _commentItemHTML(c, isReply = false) {
+      const canDelete = c.user_id === _currentUserId || _listingOwnerId === _currentUserId;
+      const isOwner   = c.user_id === _listingOwnerId;
+      const ownerBadge = isOwner
+        ? `<span class="comment-owner-badge">İlan Sahibi</span>`
+        : '';
+      const deleteBtn = canDelete
+        ? `<button class="comment-delete-btn" data-comment-id="${c.id}" aria-label="Sil" title="Sil">${_trashSVG}</button>`
+        : '';
+      const replyBtn = !isReply
+        ? `<button class="comment-reply-btn" data-comment-id="${c.id}" data-author="${escHtml(c.author_name || '')}" aria-label="Yanıtla">${_replySVG} Yanıtla</button>`
+        : '';
+      return `
+        <div class="comment-avatar">${avatarHTML(c.author_name, c.author_avatar, 28)}</div>
+        <div class="comment-body">
+          <div class="comment-meta">
+            <span class="comment-author">${escHtml(c.author_name || '?')}</span>
+            ${ownerBadge}
+            <span class="comment-time">${_timeAgo(c.created_at)}</span>
+            <span class="comment-actions-right">
+              ${replyBtn}
+              ${deleteBtn}
+            </span>
+          </div>
+          <div class="comment-content">${escHtml(c.content)}</div>
+        </div>`;
+    }
+
+    function _updateCount() {
+      const total = document.querySelectorAll('.comment-item:not(.comment-reply)').length
+                  + document.querySelectorAll('.comment-reply').length;
+      const countEl = document.getElementById('comments-count');
+      if (countEl) countEl.textContent = total ? `(${total})` : '';
+    }
+
+    function _bindItem(el, commentId, isReply) {
+      const delBtn = el.querySelector('.comment-delete-btn');
+      if (delBtn) delBtn.addEventListener('click', () => _delete(commentId));
+      if (!isReply) {
+        const repBtn = el.querySelector('.comment-reply-btn');
+        if (repBtn) repBtn.addEventListener('click', () => {
+          _setReplyTarget(Number(repBtn.dataset.commentId), repBtn.dataset.author, el);
+        });
+      }
     }
 
     function _render(comments) {
@@ -952,9 +1002,21 @@ const App = (() => {
       const countEl = document.getElementById('comments-count');
       if (!list) return;
 
+      // Build tree: roots + replies map
+      const roots   = [];
+      const replies  = {};
+      comments.forEach(c => {
+        if (c.parent_id) {
+          if (!replies[c.parent_id]) replies[c.parent_id] = [];
+          replies[c.parent_id].push(c);
+        } else {
+          roots.push(c);
+        }
+      });
+
       if (countEl) countEl.textContent = comments.length ? `(${comments.length})` : '';
 
-      if (comments.length === 0) {
+      if (roots.length === 0 && comments.length === 0) {
         list.innerHTML = `
           <div class="comments-empty">
             <svg width="22" height="22" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -965,38 +1027,51 @@ const App = (() => {
         return;
       }
 
-      list.innerHTML = comments.map(c => {
-        const canDelete = c.user_id === _currentUserId || _listingOwnerId === _currentUserId;
-        const deleteBtn = canDelete
-          ? `<button class="comment-delete-btn" data-comment-id="${c.id}" aria-label="Yorumu sil" title="Sil">
-               <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                 <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                 <path d="M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-               </svg>
-             </button>`
-          : '';
-        return `
-          <div class="comment-item" data-id="${c.id}">
-            <div class="comment-avatar">${avatarHTML(c.author_name, c.author_avatar, 28)}</div>
-            <div class="comment-body">
-              <div class="comment-meta">
-                <span class="comment-author">${escHtml(c.author_name || '?')}</span>
-                <span class="comment-time">${_timeAgo(c.created_at)}</span>
-                ${deleteBtn}
-              </div>
-              <div class="comment-content">${escHtml(c.content)}</div>
-            </div>
-          </div>`;
-      }).join('');
+      list.innerHTML = '';
+      roots.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'comment-item';
+        el.dataset.id = c.id;
+        el.innerHTML = _commentItemHTML(c, false);
+        _bindItem(el, c.id, false);
+        list.appendChild(el);
 
-      list.querySelectorAll('.comment-delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => _delete(Number(btn.dataset.commentId)));
+        // Render replies under this root
+        (replies[c.id] || []).forEach(r => {
+          const rel = document.createElement('div');
+          rel.className = 'comment-item comment-reply';
+          rel.dataset.id = r.id;
+          rel.innerHTML = _commentItemHTML(r, true);
+          _bindItem(rel, r.id, true);
+          list.appendChild(rel);
+        });
       });
+    }
+
+    function _setReplyTarget(commentId, authorName, parentEl) {
+      _replyingTo = { id: commentId, authorName };
+      const input   = document.getElementById('comment-input');
+      const replyBar = document.getElementById('comment-reply-bar');
+      const replyName = document.getElementById('comment-reply-name');
+      if (replyBar && replyName) {
+        replyName.textContent = authorName;
+        replyBar.classList.remove('hidden');
+      }
+      input?.focus();
+      // Scroll input into view
+      document.getElementById('comments-input-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function _clearReplyTarget() {
+      _replyingTo = null;
+      const replyBar = document.getElementById('comment-reply-bar');
+      if (replyBar) replyBar.classList.add('hidden');
     }
 
     async function load(listingId, listingOwnerId) {
       _listingId      = listingId;
       _listingOwnerId = listingOwnerId;
+      _replyingTo     = null;
       try {
         const raw = localStorage.getItem('cb_user') || '{}';
         _currentUserId = JSON.parse(raw).id || null;
@@ -1006,6 +1081,7 @@ const App = (() => {
       if (list) list.innerHTML = '<div class="comments-loading"><span class="comments-spinner"></span></div>';
       const countEl = document.getElementById('comments-count');
       if (countEl) countEl.textContent = '';
+      _clearReplyTarget();
 
       // Reset input
       const input     = document.getElementById('comment-input');
@@ -1026,85 +1102,84 @@ const App = (() => {
     async function _delete(commentId) {
       try {
         await Api.deleteComment(_listingId, commentId);
+        // Remove item + any replies under it
         const item = document.querySelector(`.comment-item[data-id="${commentId}"]`);
         if (item) {
           item.style.opacity = '0';
-          item.style.transition = 'opacity 0.2s';
-          setTimeout(() => {
-            item.remove();
-            // Recount
-            const remaining = document.querySelectorAll('.comment-item').length;
-            const countEl = document.getElementById('comments-count');
-            if (countEl) countEl.textContent = remaining ? `(${remaining})` : '';
-            if (remaining === 0) {
-              const list = document.getElementById('comments-list');
-              if (list) list.innerHTML = `
-                <div class="comments-empty">
-                  <svg width="22" height="22" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="#c4b5fd" stroke-width="1.3" stroke-linejoin="round"/>
-                  </svg>
-                  <span>Henüz yorum yok. İlk yorumu sen yap!</span>
-                </div>`;
-            }
-          }, 200);
+          item.style.transition = 'opacity 0.18s';
+          setTimeout(() => { item.remove(); _updateCount(); _checkEmpty(); }, 200);
         }
+        // Also remove replies whose parent is this comment
+        document.querySelectorAll('.comment-reply').forEach(r => {
+          if (Number(r.dataset.parentId) === commentId) {
+            r.style.opacity = '0';
+            r.style.transition = 'opacity 0.18s';
+            setTimeout(() => { r.remove(); _updateCount(); }, 200);
+          }
+        });
       } catch {
         UI.toast('Yorum silinemedi', 'error');
       }
     }
 
+    function _checkEmpty() {
+      const list = document.getElementById('comments-list');
+      if (!list) return;
+      if (list.querySelectorAll('.comment-item').length === 0) {
+        list.innerHTML = `
+          <div class="comments-empty">
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M14 2H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V3a1 1 0 00-1-1z" stroke="#c4b5fd" stroke-width="1.3" stroke-linejoin="round"/>
+            </svg>
+            <span>Henüz yorum yok. İlk yorumu sen yap!</span>
+          </div>`;
+      }
+    }
+
     async function submit() {
       if (!_listingId) return;
-      const input = document.getElementById('comment-input');
-      const btn   = document.getElementById('comment-submit-btn');
+      const input   = document.getElementById('comment-input');
+      const btn     = document.getElementById('comment-submit-btn');
       const content = (input?.value || '').trim();
       if (content.length < 2) return;
 
+      const parentId = _replyingTo ? _replyingTo.id : null;
       btn.disabled = true;
       btn.classList.add('comment-submit-btn--sending');
+
       try {
-        const res = await Api.createComment(_listingId, content);
+        const res = await Api.createComment(_listingId, content, parentId);
         input.value = '';
         input.style.height = '';
         const cc = document.getElementById('comment-char-count');
         if (cc) { cc.textContent = '0 / 500'; cc.style.color = ''; }
-        input.dispatchEvent(new Event('input')); // reset textarea height
+        _clearReplyTarget();
+        input.dispatchEvent(new Event('input'));
 
-        // Inject the new comment into the list without full reload
         const list = document.getElementById('comments-list');
-        const empty = list?.querySelector('.comments-empty');
-        if (empty) empty.remove();
+        list?.querySelector('.comments-empty')?.remove();
 
-        const c = res.data;
-        const canDelete = true; // always can delete own
+        const c       = res.data;
+        const isReply = !!c.parent_id;
         const newItem = document.createElement('div');
-        newItem.className = 'comment-item comment-item--new';
+        newItem.className = `comment-item comment-item--new${isReply ? ' comment-reply' : ''}`;
         newItem.dataset.id = c.id;
-        newItem.innerHTML = `
-          <div class="comment-avatar">${avatarHTML(c.author_name, c.author_avatar, 28)}</div>
-          <div class="comment-body">
-            <div class="comment-meta">
-              <span class="comment-author">${escHtml(c.author_name || '?')}</span>
-              <span class="comment-time">Az önce</span>
-              <button class="comment-delete-btn" data-comment-id="${c.id}" aria-label="Yorumu sil" title="Sil">
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <path d="M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            <div class="comment-content">${escHtml(c.content)}</div>
-          </div>`;
+        if (isReply) newItem.dataset.parentId = c.parent_id;
+        newItem.innerHTML = _commentItemHTML(c, isReply);
+        _bindItem(newItem, c.id, isReply);
 
-        newItem.querySelector('.comment-delete-btn').addEventListener('click', () => _delete(c.id));
-        list?.appendChild(newItem);
-        // Scroll to new comment
+        if (isReply) {
+          // Insert after the parent and its existing replies
+          const siblings = list?.querySelectorAll(`.comment-reply[data-parent-id="${c.parent_id}"]`);
+          const lastSibling = siblings?.length ? siblings[siblings.length - 1] : list?.querySelector(`.comment-item[data-id="${c.parent_id}"]`);
+          if (lastSibling) lastSibling.after(newItem);
+          else list?.appendChild(newItem);
+        } else {
+          list?.appendChild(newItem);
+        }
+
         newItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-        // Update count
-        const total = document.querySelectorAll('.comment-item').length;
-        const countEl = document.getElementById('comments-count');
-        if (countEl) countEl.textContent = `(${total})`;
+        _updateCount();
       } catch (err) {
         const msg = err?.data?.errors?.[0] || 'Yorum gönderilemedi';
         UI.toast(msg, 'error');
@@ -1121,29 +1196,26 @@ const App = (() => {
 
       const charCount = document.getElementById('comment-char-count');
 
-      // Enable/disable send button + auto-resize textarea + char count
       input.addEventListener('input', () => {
         const len = input.value.length;
-        const hasContent = input.value.trim().length >= 2;
-        btn.disabled = !hasContent;
+        btn.disabled = input.value.trim().length < 2;
         if (charCount) {
           charCount.textContent = `${len} / 500`;
           charCount.style.color = len > 450 ? '#f59e0b' : '';
         }
-        // Auto-resize
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 140) + 'px';
       });
 
-      // Submit on Enter (Shift+Enter = new line)
       input.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          if (!btn.disabled) submit();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!btn.disabled) submit(); }
+        if (e.key === 'Escape') _clearReplyTarget();
       });
 
       btn.addEventListener('click', submit);
+
+      // Cancel reply
+      document.getElementById('comment-reply-cancel')?.addEventListener('click', _clearReplyTarget);
     }
 
     return { load, init };

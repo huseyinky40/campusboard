@@ -64,7 +64,7 @@ const Api = {
   getFavorites()              { return this.request('GET',  '/favorites'); },
   toggleFavorite(listingId)   { return this.request('POST', `/favorites/${listingId}`); },
 
-  getComments(listingId)                    { return this.request('GET',    `/listings/${listingId}/comments`); },
-  createComment(listingId, content)         { return this.request('POST',   `/listings/${listingId}/comments`, { content }); },
-  deleteComment(listingId, commentId)       { return this.request('DELETE', `/listings/${listingId}/comments/${commentId}`); },
+  getComments(listingId)                         { return this.request('GET',    `/listings/${listingId}/comments`); },
+  createComment(listingId, content, parentId)    { return this.request('POST',   `/listings/${listingId}/comments`, { content, parent_id: parentId || null }); },
+  deleteComment(listingId, commentId)            { return this.request('DELETE', `/listings/${listingId}/comments/${commentId}`); },
 };

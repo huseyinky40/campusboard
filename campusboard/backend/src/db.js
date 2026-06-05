@@ -106,10 +106,12 @@ async function createPgAdapter(connectionString) {
       id         SERIAL PRIMARY KEY,
       listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
       user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      parent_id  INTEGER REFERENCES comments(id) ON DELETE CASCADE,
       content    TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE`);
 
   return {
     async get(sql, params = []) {
@@ -190,6 +192,7 @@ function createSqliteAdapter() {
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       listing_id INTEGER NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
       user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      parent_id  INTEGER REFERENCES comments(id) ON DELETE CASCADE,
       content    TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );

@@ -15,7 +15,8 @@ class CommentController {
 
   async create(req, res) {
     try {
-      const comment = await this.service.create(req.user.id, Number(req.params.id), req.body.content);
+      const parentId = req.body.parent_id ? Number(req.body.parent_id) : null;
+      const comment = await this.service.create(req.user.id, Number(req.params.id), req.body.content, parentId);
       res.status(201).json({ data: comment });
     } catch (err) {
       if (err.type === 'not_found')   return res.status(404).json({ error: 'İlan bulunamadı' });

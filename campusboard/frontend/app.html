@@ -554,13 +554,20 @@
               <span class="comments-spinner"></span>
             </div>
           </div>
-          <div class="comments-input-wrap">
+          <div class="comments-input-wrap" id="comments-input-wrap">
+            <div class="comment-reply-bar hidden" id="comment-reply-bar">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8l4-4v2.5c4 0 7 1.5 8 5.5-1.5-3-4-4-8-4V10L2 8z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <span><span id="comment-reply-name"></span> yanıtlanıyor</span>
+              <button class="comment-reply-cancel-btn" id="comment-reply-cancel" aria-label="Yanıtlamayı iptal et">
+                <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </button>
+            </div>
             <textarea id="comment-input" class="comment-textarea" placeholder="Soru sor veya yorum yaz..." rows="2" maxlength="500"></textarea>
-            <div class="comments-input-actions">
+            <div class="comments-input-footer">
               <span class="comment-char-count" id="comment-char-count">0 / 500</span>
               <button class="comment-submit-btn" id="comment-submit-btn" disabled>
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M2 8h12M9 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M1.5 8.5L7 14 14.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 Gönder
               </button>
