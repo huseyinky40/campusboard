@@ -970,12 +970,10 @@ const App = (() => {
             <span class="comment-author">${escHtml(c.author_name || '?')}</span>
             ${ownerBadge}
             <span class="comment-time">${_timeAgo(c.created_at)}</span>
-            <span class="comment-actions-right">
-              ${replyBtn}
-              ${deleteBtn}
-            </span>
+            ${deleteBtn}
           </div>
           <div class="comment-content">${escHtml(c.content)}</div>
+          ${replyBtn ? `<div class="comment-footer-row">${replyBtn}</div>` : ''}
         </div>`;
     }
 
@@ -1089,7 +1087,7 @@ const App = (() => {
       const charCount = document.getElementById('comment-char-count');
       if (input) { input.value = ''; input.style.height = ''; }
       if (btn)   btn.disabled = true;
-      if (charCount) { charCount.textContent = '0 / 500'; charCount.style.color = ''; }
+      if (charCount) { charCount.textContent = '0 / 500'; charCount.style.color = ''; charCount.classList.remove('visible'); }
 
       try {
         const res = await Api.getComments(listingId);
@@ -1201,6 +1199,7 @@ const App = (() => {
         btn.disabled = input.value.trim().length < 2;
         if (charCount) {
           charCount.textContent = `${len} / 500`;
+          charCount.classList.toggle('visible', len > 400);
           charCount.style.color = len > 450 ? '#f59e0b' : '';
         }
         input.style.height = 'auto';
