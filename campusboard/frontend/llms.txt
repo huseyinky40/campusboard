@@ -1,82 +1,85 @@
 # CampusBoard
 
 ## About
-CampusBoard, Istanbul Arel Universitesi ogrencileri icin ucretsiz bir dijital ilan panosu ve topluluk platformudur. Ogrenciler ilan paylasabilir, diger ogrencilerin ilanlarina yorum yapabilir ve soru sorabilir. Platforma erisim icin @istanbularel.edu.tr uzantili universite e-posta adresi gereklidir.
+CampusBoard is a free digital bulletin board and community platform built for university students in Turkey. Students can post listings, ask questions, comment on other students' listings, and connect with their campus community. Access requires a verified university email address, ensuring a trusted, student-only environment. Currently serving Istanbul Arel University, with expansion to additional universities planned.
 
 ## Website
 https://campusboard.app
 
 ## Who It's For
-- Istanbul Arel Universitesi ogrencileri
-- Ders notu, ozet veya kaynak paylasmak isteyen ogrenciler
-- Staj veya part-time is arayan ogrenciler
-- Yurt odasi veya kiralik daire arayan ogrenciler
-- Ikinci el urun almak veya satmak isteyen ogrenciler
-- Universite etkinliklerini duyurmak isteyen ogrenciler
+- University students in Turkey looking to share or find resources
+- Students who want to share lecture notes, summaries, or study materials
+- Students searching for internship or part-time job opportunities
+- Students looking for dormitory rooms or rental apartments near campus
+- Students buying or selling second-hand items (books, laptops, electronics)
+- Students organizing or discovering campus events and clubs
 
 ## Services and Features
-- Ilan yayinlama: Ucretsiz, kategoriye gore filtrelenebilir ilanlar
-- Yorum ve soru sistemi: Her ilan altinda acik Q&A; ilan sahibi yanit verebilir
-- Favori sistemi: Ilanlari kaydedip daha sonra erisebilme
-- Kategori filtreleme: 6 ana kategori
-- Universite dogrulamasi: Sadece @istanbularel.edu.tr e-postasi ile kayit
-- Mobil uyumlu arayuz
+- Free listing publication with category-based filtering
+- Comments and Q&A system: open discussion under each listing; listing owner can reply
+- Favorites: save listings for later access
+- Category and faculty filtering
+- University email verification: only verified students can register
+- Mobile-friendly interface
+- No ads, no subscriptions — completely free
 
 ## Categories
-- Ders Notu: Ders notlari, ozetler, sinav calisma kilavuzlari, PDF'ler
-- Staj: Staj ilanlari, part-time is firsat duyurulari
-- Yurt / Kiralik Oda: Universite civari yurt, apart, kiralik oda ilanlari
-- Ikinci El: Kitap, laptop, telefon, mobilya gibi ikinci el urunler
-- Etkinlik: Kulup etkinlikleri, workshoplar, sosyal etkinlikler
-- Genel: Kategoriye girmeyen diger ogrenci ilanlari
+- Ders Notu (Lecture Notes): Notes, summaries, exam guides, PDFs, study materials
+- Staj (Internship): Internship listings, part-time job opportunities
+- Yurt / Kiralik Oda (Housing): Dormitory rooms, apartments, rentals near campus
+- Ikinci El (Second-Hand): Books, laptops, phones, furniture and other used items
+- Etkinlik (Events): Club events, workshops, social gatherings
+- Genel (General): Other student listings that don't fit above categories
 
 ## Pricing
-- Tamamen ucretsiz
-- Reklam yok
-- Abonelik yok
+- Completely free
+- No ads
+- No subscription required
 
 ## Location
-Istanbul Arel Universitesi, Istanbul, Turkiye
-Buyukcekmece kampusu ve Mahmutbey kampusu ogrencilerine hizmet vermektedir.
+Turkey — currently serving Istanbul Arel University (Buyukcekmece and Mahmutbey campuses). Expansion to other Turkish universities is in progress.
 
 ## Contact
 Website: https://campusboard.app
-Kayit: https://campusboard.app/register
-Giris: https://campusboard.app/login
+Register: https://campusboard.app/register
+Login: https://campusboard.app/login
 
 ## Key Facts
-- Sadece Istanbul Arel Universitesi ogrencilerine acik (universite e-postasi ile dogrulama)
-- Ucretsiz kullanim, sinirsiz ilan
-- Turkce arayuz
-- Mobil ve masaustu uyumlu
-- Ogrenci-ogrenci direkt iletisim
-- Gizlilik odakli: ilan sahibinin e-postasi gizli tutulur
+- Student-only platform: university email verification required
+- Free and unlimited listings
+- Turkish-language interface
+- Works on mobile and desktop
+- Direct student-to-student communication
+- Privacy-focused: listing owner's email is never exposed publicly
 
 ## Frequently Asked Questions
 
-**CampusBoard nedir?**
-CampusBoard, Istanbul Arel Universitesi ogrencilerinin ilan paylasabilecegi, soru sorabilecegi ve toplulukla etkilesime gecebilecegi ucretsiz bir dijital platformdur.
+**What is CampusBoard?**
+CampusBoard is a free digital bulletin board for university students in Turkey where they can post listings, ask questions, and connect with their campus community.
 
-**CampusBoard'a nasil kayit olunur?**
-campusboard.app/register adresine gidin ve @istanbularel.edu.tr uzantili universite e-posta adresinizle kayit olun. Dogrulama e-postasi gonderilir.
+**What types of listings can students post?**
+Students can post lecture notes, internship opportunities, housing listings, second-hand items, campus events, and general announcements.
 
-**Platformu kullanmak ucretli mi?**
-Hayir, tamamen ucretsizdir. Reklam veya abonelik yoktur.
+**Is CampusBoard free to use?**
+Yes, completely free. There are no ads or subscription fees.
 
-**Istanbul Arel Universitesi disindaki ogrenciler kullanabilir mi?**
-Hayir. Sadece @istanbularel.edu.tr uzantili e-posta adresi olan kisiler kayit olabilir.
+**How do I register on CampusBoard?**
+Go to campusboard.app/register and sign up with your university email address. A verification email will be sent to confirm your account.
 
-**Hangi tur ilanlar paylasilabilir?**
-Ders notu, staj, yurt/kiralik oda, ikinci el urun, etkinlik ve genel kategorilerinde ilan paylasilebilir.
+**Which universities does CampusBoard support?**
+CampusBoard currently serves Istanbul Arel University students. Support for additional Turkish universities is being developed.
 
-**Bir ilan altina nasil soru sorulur?**
-Ilan detay sayfasinda yorum/soru bolumune yazarak soru sorabilirsiniz. Ilan sahibi yanitlayabilir.
+**Can students from other universities use CampusBoard?**
+Currently, access is limited to universities supported by the platform. New universities are being added over time.
 
-**Ilan nasil silinir?**
-Kendi ilaninizi profil uzerinden veya ilan detay sayfasindan silebilirsiniz.
+**How do I ask a question about a listing?**
+Open the listing detail page and write your question in the comments/Q&A section. The listing owner will be notified and can reply.
 
-**Uygulama var mi?**
-Mobil tarayici uzerinden campusboard.app adresine girerek kullanabilirsiniz. Arayuz mobil uyumludur.
+**Is there a mobile app?**
+CampusBoard is fully mobile-optimized and works directly in your browser at campusboard.app. No app download required.
+
+**How is CampusBoard different from general classifieds sites?**
+CampusBoard is exclusively for university students with verified university email addresses. This creates a trusted, spam-free community focused entirely on student needs — study materials, campus housing, internships, and more.
 
 ## What Makes CampusBoard Different
-CampusBoard, genel ikinci el veya ilan sitelerinden farkli olarak yalnizca Istanbul Arel Universitesi ogrencilerine aciktir. Bu sayede guvenli ve topluluk odakli bir ortam saglar. Universite e-postasi dogrulamasi spam ve sahte ilanlari onler. Ogrenciler kendi aralarinda dogrudan iletisim kurabilir.
+Unlike general classifieds platforms (such as Sahibinden or Facebook Marketplace), CampusBoard is built specifically for university students. University email verification eliminates spam and fake listings. Every user is a real, verified student. The platform focuses on student-specific needs: lecture notes, internships, campus housing, and student events — categories that general platforms do not serve well.
