@@ -1,0 +1,82 @@
+# CampusBoard
+
+## About
+CampusBoard, Istanbul Arel Universitesi ogrencileri icin ucretsiz bir dijital ilan panosu ve topluluk platformudur. Ogrenciler ilan paylasabilir, diger ogrencilerin ilanlarina yorum yapabilir ve soru sorabilir. Platforma erisim icin @istanbularel.edu.tr uzantili universite e-posta adresi gereklidir.
+
+## Website
+https://campusboard.app
+
+## Who It's For
+- Istanbul Arel Universitesi ogrencileri
+- Ders notu, ozet veya kaynak paylasmak isteyen ogrenciler
+- Staj veya part-time is arayan ogrenciler
+- Yurt odasi veya kiralik daire arayan ogrenciler
+- Ikinci el urun almak veya satmak isteyen ogrenciler
+- Universite etkinliklerini duyurmak isteyen ogrenciler
+
+## Services and Features
+- Ilan yayinlama: Ucretsiz, kategoriye gore filtrelenebilir ilanlar
+- Yorum ve soru sistemi: Her ilan altinda acik Q&A; ilan sahibi yanit verebilir
+- Favori sistemi: Ilanlari kaydedip daha sonra erisebilme
+- Kategori filtreleme: 6 ana kategori
+- Universite dogrulamasi: Sadece @istanbularel.edu.tr e-postasi ile kayit
+- Mobil uyumlu arayuz
+
+## Categories
+- Ders Notu: Ders notlari, ozetler, sinav calisma kilavuzlari, PDF'ler
+- Staj: Staj ilanlari, part-time is firsat duyurulari
+- Yurt / Kiralik Oda: Universite civari yurt, apart, kiralik oda ilanlari
+- Ikinci El: Kitap, laptop, telefon, mobilya gibi ikinci el urunler
+- Etkinlik: Kulup etkinlikleri, workshoplar, sosyal etkinlikler
+- Genel: Kategoriye girmeyen diger ogrenci ilanlari
+
+## Pricing
+- Tamamen ucretsiz
+- Reklam yok
+- Abonelik yok
+
+## Location
+Istanbul Arel Universitesi, Istanbul, Turkiye
+Buyukcekmece kampusu ve Mahmutbey kampusu ogrencilerine hizmet vermektedir.
+
+## Contact
+Website: https://campusboard.app
+Kayit: https://campusboard.app/register
+Giris: https://campusboard.app/login
+
+## Key Facts
+- Sadece Istanbul Arel Universitesi ogrencilerine acik (universite e-postasi ile dogrulama)
+- Ucretsiz kullanim, sinirsiz ilan
+- Turkce arayuz
+- Mobil ve masaustu uyumlu
+- Ogrenci-ogrenci direkt iletisim
+- Gizlilik odakli: ilan sahibinin e-postasi gizli tutulur
+
+## Frequently Asked Questions
+
+**CampusBoard nedir?**
+CampusBoard, Istanbul Arel Universitesi ogrencilerinin ilan paylasabilecegi, soru sorabilecegi ve toplulukla etkilesime gecebilecegi ucretsiz bir dijital platformdur.
+
+**CampusBoard'a nasil kayit olunur?**
+campusboard.app/register adresine gidin ve @istanbularel.edu.tr uzantili universite e-posta adresinizle kayit olun. Dogrulama e-postasi gonderilir.
+
+**Platformu kullanmak ucretli mi?**
+Hayir, tamamen ucretsizdir. Reklam veya abonelik yoktur.
+
+**Istanbul Arel Universitesi disindaki ogrenciler kullanabilir mi?**
+Hayir. Sadece @istanbularel.edu.tr uzantili e-posta adresi olan kisiler kayit olabilir.
+
+**Hangi tur ilanlar paylasilabilir?**
+Ders notu, staj, yurt/kiralik oda, ikinci el urun, etkinlik ve genel kategorilerinde ilan paylasilebilir.
+
+**Bir ilan altina nasil soru sorulur?**
+Ilan detay sayfasinda yorum/soru bolumune yazarak soru sorabilirsiniz. Ilan sahibi yanitlayabilir.
+
+**Ilan nasil silinir?**
+Kendi ilaninizi profil uzerinden veya ilan detay sayfasindan silebilirsiniz.
+
+**Uygulama var mi?**
+Mobil tarayici uzerinden campusboard.app adresine girerek kullanabilirsiniz. Arayuz mobil uyumludur.
+
+## What Makes CampusBoard Different
+CampusBoard, genel ikinci el veya ilan sitelerinden farkli olarak yalnizca Istanbul Arel Universitesi ogrencilerine aciktir. Bu sayede guvenli ve topluluk odakli bir ortam saglar. Universite e-postasi dogrulamasi spam ve sahte ilanlari onler. Ogrenciler kendi aralarinda dogrudan iletisim kurabilir.
