@@ -147,9 +147,9 @@ class AdminService {
     const offset  = (page - 1) * limit;
     const pattern = `%${search}%`;
     const comments = await this.db.all(
-      `SELECT c.id, c.content, c.created_at, c.listing_id,
+      `SELECT c.id, c.content, c.created_at, c.listing_id, c.parent_id,
               u.name AS author_name, u.email AS author_email,
-              l.title AS listing_title
+              l.title AS listing_title, l.category AS listing_category
        FROM comments c
        JOIN users u ON u.id = c.user_id
        JOIN listings l ON l.id = c.listing_id

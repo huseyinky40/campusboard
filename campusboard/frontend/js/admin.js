@@ -1,40 +1,43 @@
-/* CampusBoard Admin Panel — integrated overlay module */
+/* CampusBoard — Admin Panel (integrated overlay) */
 (() => {
   'use strict';
 
-  const TOKEN_KEY = 'cb_token';
-  const getToken  = () => localStorage.getItem(TOKEN_KEY);
-
-  // ── Guard: only init if overlay exists ───────────────────────────────────
+  // ── Guard ──────────────────────────────────────────────────────────────────
   const overlay = document.getElementById('admin-overlay');
-  if (!overlay) return;
+  if (!overlay) return; // admin HTML yoksa çık
 
-  // ── API ──────────────────────────────────────────────────────────────────
+  // ── API ───────────────────────────────────────────────────────────────────
+  const getToken = () => localStorage.getItem('cb_token');
+
   async function api(method, path, body) {
     try {
       const res = await fetch(`/api${path}`, {
         method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
         body: body ? JSON.stringify(body) : undefined,
       });
       if (res.status === 401) { window.location.href = '/login'; return null; }
-      const data = await res.json();
-      if (!res.ok) { showToast(data.error || 'Bir hata oluştu', 'err'); return null; }
-      return data;
-    } catch {
-      showToast('Bağlantı hatası', 'err');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { toast(json.error || 'Bir hata oluştu', 'err'); return null; }
+      return json;
+    } catch (err) {
+      console.error('[Admin API]', err);
+      toast('Bağlantı hatası', 'err');
       return null;
     }
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
-  function showToast(msg, type = 'ok') {
+  function toast(msg, type = 'ok') {
     document.querySelectorAll('.admin-toast').forEach(t => t.remove());
-    const t = document.createElement('div');
-    t.className = `admin-toast admin-toast--${type}`;
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3500);
+    const el = document.createElement('div');
+    el.className = `admin-toast admin-toast--${type}`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
   }
 
   // ── Confirm dialog ────────────────────────────────────────────────────────
@@ -43,24 +46,25 @@
   let   pendingResolve = null;
 
   function confirmDialog(msg) {
+    if (!confirmOverlay || !confirmMsg) return Promise.resolve(window.confirm(msg));
     confirmMsg.textContent = msg;
     confirmOverlay.classList.remove('hidden');
-    return new Promise(resolve => { pendingResolve = resolve; });
+    return new Promise(res => { pendingResolve = res; });
   }
 
-  // Use direct onclick to avoid bubbling issues
-  document.getElementById('confirm-cancel').onclick = () => {
-    confirmOverlay.classList.add('hidden');
-    pendingResolve?.(false);
-    pendingResolve = null;
+  const cancelBtn = document.getElementById('confirm-cancel');
+  const okBtn     = document.getElementById('confirm-ok');
+
+  if (cancelBtn) cancelBtn.onclick = () => {
+    confirmOverlay?.classList.add('hidden');
+    if (pendingResolve) { pendingResolve(false); pendingResolve = null; }
   };
-  document.getElementById('confirm-ok').onclick = () => {
-    confirmOverlay.classList.add('hidden');
-    pendingResolve?.(true);
-    pendingResolve = null;
+  if (okBtn) okBtn.onclick = () => {
+    confirmOverlay?.classList.add('hidden');
+    if (pendingResolve) { pendingResolve(true); pendingResolve = null; }
   };
 
-  // ── Overlay open/close ────────────────────────────────────────────────────
+  // ── Open / Close panel ────────────────────────────────────────────────────
   function openPanel() {
     overlay.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -74,17 +78,10 @@
     document.body.style.overflow = '';
   }
 
-  document.getElementById('admin-close').onclick = closePanel;
+  const adminCloseBtn = document.getElementById('admin-close');
+  if (adminCloseBtn) adminCloseBtn.onclick = closePanel;
 
-  // btn-admin click — set up after DOM ready
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btn-admin')?.addEventListener('click', e => {
-      e.stopPropagation();
-      document.getElementById('user-dropdown')?.classList.remove('open');
-      openPanel();
-    });
-  });
-  // Also try immediately in case DOM is already ready
+  // btn-admin — tek listener, addEventListener ile
   const btnAdmin = document.getElementById('btn-admin');
   if (btnAdmin) {
     btnAdmin.addEventListener('click', e => {
@@ -96,8 +93,10 @@
 
   // ── Tab switching ─────────────────────────────────────────────────────────
   function setTab(name) {
-    overlay.querySelectorAll('.admin-nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-    overlay.querySelectorAll('.admin-tab').forEach(t => t.classList.toggle('active', t.id === `tab-${name}`));
+    overlay.querySelectorAll('.admin-nav-item')
+      .forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    overlay.querySelectorAll('.admin-tab')
+      .forEach(t => t.classList.toggle('active', t.id === `tab-${name}`));
   }
 
   overlay.querySelectorAll('.admin-nav-item').forEach(btn => {
@@ -111,9 +110,7 @@
   });
 
   // ── User Picker Dropdown ──────────────────────────────────────────────────
-  let allUsers = [];           // cache
-  let selectedAuthorId  = ''; // '' = all
-  let userPickerLoaded  = false;
+  let allUsers = [], selectedAuthorId = '', userPickerLoaded = false;
 
   const pickerBtn    = document.getElementById('user-picker-btn');
   const pickerPanel  = document.getElementById('user-picker-panel');
@@ -122,43 +119,43 @@
   const pickerList   = document.getElementById('user-picker-list');
   const pickerAll    = document.getElementById('user-picker-all');
 
-  function openUserPicker() {
-    pickerBtn?.classList.add('open');
-    pickerPanel?.classList.add('open');
-    pickerBtn?.setAttribute('aria-expanded', 'true');
-    pickerSearch?.focus();
-  }
-  function closeUserPicker() {
-    pickerBtn?.classList.remove('open');
-    pickerPanel?.classList.remove('open');
-    pickerBtn?.setAttribute('aria-expanded', 'false');
+  if (pickerBtn) {
+    pickerBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = pickerPanel?.classList.contains('open');
+      pickerPanel?.classList.toggle('open', !open);
+      pickerBtn.classList.toggle('open', !open);
+      pickerBtn.setAttribute('aria-expanded', String(!open));
+      if (!open) pickerSearch?.focus();
+    });
   }
 
-  pickerBtn?.addEventListener('click', e => {
-    e.stopPropagation();
-    pickerPanel?.classList.contains('open') ? closeUserPicker() : openUserPicker();
-  });
-
-  // Close on outside click
   document.addEventListener('click', e => {
-    if (!document.getElementById('admin-user-picker')?.contains(e.target)) closeUserPicker();
+    if (!document.getElementById('admin-user-picker')?.contains(e.target)) {
+      pickerPanel?.classList.remove('open');
+      pickerBtn?.classList.remove('open');
+    }
   });
 
-  pickerAll?.addEventListener('click', () => {
-    selectedAuthorId = '';
-    pickerLabel.textContent = 'Tüm kullanıcılar';
-    pickerList?.querySelectorAll('.admin-user-picker-item').forEach(i => i.classList.remove('selected'));
-    pickerAll.classList.add('selected');
-    closeUserPicker();
-    loadListings(1);
-  });
+  if (pickerAll) {
+    pickerAll.addEventListener('click', () => {
+      selectedAuthorId = '';
+      if (pickerLabel) pickerLabel.textContent = 'Tüm kullanıcılar';
+      pickerAll.classList.add('selected');
+      pickerList?.querySelectorAll('.admin-user-picker-item')
+        .forEach(i => i.classList.remove('selected'));
+      pickerPanel?.classList.remove('open');
+      pickerBtn?.classList.remove('open');
+      loadListings(1);
+    });
+  }
 
-  function renderUserList(filterText = '') {
+  function renderUserList(q = '') {
     if (!pickerList) return;
     pickerList.replaceChildren();
-    const q = filterText.toLowerCase();
+    const lower = q.toLowerCase();
     const filtered = allUsers.filter(u =>
-      u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      u.name.toLowerCase().includes(lower) || u.email.toLowerCase().includes(lower)
     );
     if (!filtered.length) {
       const empty = document.createElement('div');
@@ -169,35 +166,42 @@
     }
     filtered.forEach(u => {
       const item = document.createElement('div');
-      item.className = `admin-user-picker-item${String(selectedAuthorId) === String(u.id) ? ' selected' : ''}`;
+      item.className = 'admin-user-picker-item';
       item.setAttribute('role', 'option');
-      const name = document.createElement('span');
+      if (String(selectedAuthorId) === String(u.id)) item.classList.add('selected');
+
+      const name  = document.createElement('span');
       name.className = 'admin-user-picker-item-name';
       name.textContent = u.name;
       const email = document.createElement('span');
       email.className = 'admin-user-picker-item-email';
       email.textContent = u.email;
       item.append(name, email);
+
       item.addEventListener('click', () => {
         selectedAuthorId = u.id;
-        pickerLabel.textContent = u.name;
-        pickerAll.classList.remove('selected');
-        pickerList.querySelectorAll('.admin-user-picker-item').forEach(i => i.classList.remove('selected'));
+        if (pickerLabel) pickerLabel.textContent = u.name;
+        pickerAll?.classList.remove('selected');
+        pickerList.querySelectorAll('.admin-user-picker-item')
+          .forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
-        closeUserPicker();
+        pickerPanel?.classList.remove('open');
+        pickerBtn?.classList.remove('open');
         loadListings(1);
       });
       pickerList.appendChild(item);
     });
   }
 
-  pickerSearch?.addEventListener('input', () => renderUserList(pickerSearch.value));
+  if (pickerSearch) {
+    pickerSearch.addEventListener('input', () => renderUserList(pickerSearch.value));
+  }
 
   async function initUserPicker() {
     if (userPickerLoaded) return;
     const data = await api('GET', '/admin/users/list');
     if (!data) return;
-    allUsers = data.users;
+    allUsers = data.users ?? [];
     userPickerLoaded = true;
     renderUserList();
   }
@@ -217,86 +221,81 @@
     return el;
   }
 
-  function mkBtn(label, mod, attrs = {}) {
+  function mkBtn(label, mod) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `admin-btn admin-btn--sm admin-btn--${mod}`;
     btn.textContent = label;
-    btn.style.cursor = 'pointer';
-    Object.entries(attrs).forEach(([k, v]) => (btn.dataset[k] = v));
     return btn;
   }
 
   function timeAgo(dateStr) {
     if (!dateStr) return '—';
-    const diff = (Date.now() - new Date(dateStr)) / 1000;
-    if (diff < 60)    return 'az önce';
-    if (diff < 3600)  return `${Math.floor(diff / 60)} dk önce`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} sa önce`;
-    return new Date(dateStr).toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'2-digit' });
+    const d = Date.now() - new Date(dateStr).getTime();
+    const s = d / 1000;
+    if (s < 60)    return 'az önce';
+    if (s < 3600)  return `${Math.floor(s / 60)} dk önce`;
+    if (s < 86400) return `${Math.floor(s / 3600)} sa önce`;
+    if (s < 86400 * 7) return `${Math.floor(s / 86400)} gün önce`;
+    return new Date(dateStr).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: '2-digit' });
   }
 
   function fmtDate(dateStr) {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('tr-TR', { day:'2-digit', month:'short', year:'numeric' });
+    return new Date(dateStr).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   function emptyRow(cols, msg) {
     const row = document.createElement('tr');
-    const cell = row.insertCell();
-    cell.colSpan = cols;
-    cell.className = 'admin-table-empty';
-    cell.textContent = msg || 'Veri bulunamadı';
+    const c = row.insertCell();
+    c.colSpan = cols; c.className = 'admin-table-empty';
+    c.textContent = msg || 'Veri bulunamadı';
     return row;
   }
 
-  // ── Action helper (loading state + toast) ─────────────────────────────────
-  async function runAction(btn, fn) {
-    btn.classList.add('loading');
+  async function doAction(btn, fn) {
     btn.disabled = true;
-    try {
-      await fn();
-    } finally {
-      btn.classList.remove('loading');
-      btn.disabled = false;
-    }
+    btn.classList.add('loading');
+    try { await fn(); }
+    catch (err) { console.error('[Admin Action]', err); toast('Bir hata oluştu', 'err'); }
+    finally { btn.disabled = false; btn.classList.remove('loading'); }
   }
 
   // ── Pagination ────────────────────────────────────────────────────────────
-  function renderPagination(containerId, currentPage, total, limit, onPage) {
+  function renderPagination(id, page, total, limit, cb) {
     const pages = Math.ceil(total / limit);
-    const el = document.getElementById(containerId);
+    const el = document.getElementById(id);
+    if (!el) return;
     el.replaceChildren();
     if (pages <= 1) return;
 
-    if (currentPage > 1) {
-      const b = document.createElement('button');
-      b.className = 'admin-page-btn'; b.textContent = '‹ Önceki';
-      b.onclick = () => onPage(currentPage - 1);
-      el.appendChild(b);
-    }
+    const prev = document.createElement('button');
+    prev.className = 'admin-page-btn'; prev.textContent = '‹ Önceki';
+    prev.disabled = page <= 1;
+    prev.addEventListener('click', () => cb(page - 1));
+    el.appendChild(prev);
+
     const info = document.createElement('span');
     info.className = 'admin-page-info';
-    info.textContent = `${currentPage} / ${pages}  (${total} kayıt)`;
+    info.textContent = `${page} / ${pages} · ${total} kayıt`;
     el.appendChild(info);
 
-    if (currentPage < pages) {
-      const b = document.createElement('button');
-      b.className = 'admin-page-btn'; b.textContent = 'Sonraki ›';
-      b.onclick = () => onPage(currentPage + 1);
-      el.appendChild(b);
-    }
+    const next = document.createElement('button');
+    next.className = 'admin-page-btn'; next.textContent = 'Sonraki ›';
+    next.disabled = page >= pages;
+    next.addEventListener('click', () => cb(page + 1));
+    el.appendChild(next);
   }
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
   async function loadStats() {
     const data = await api('GET', '/admin/stats');
     if (!data) return;
-    document.getElementById('stat-users').textContent    = data.total_users;
-    document.getElementById('stat-listings').textContent = data.total_listings;
-    document.getElementById('stat-active').textContent   = data.active_listings;
-    document.getElementById('stat-comments').textContent = data.total_comments;
-    document.getElementById('stat-banned').textContent   = data.banned_users;
+    ['users','listings','active','comments','banned'].forEach(k => {
+      const el = document.getElementById(`stat-${k}`);
+      if (el) el.textContent =
+        data[k === 'active' ? 'active_listings' : k === 'comments' ? 'total_comments' : k === 'banned' ? 'banned_users' : `total_${k}`] ?? '—';
+    });
   }
 
   // ── Users ─────────────────────────────────────────────────────────────────
@@ -309,11 +308,12 @@
     if (!data) return;
 
     const tbody = document.getElementById('users-tbody');
+    if (!tbody) return;
     tbody.replaceChildren();
 
-    if (!data.users.length) {
+    if (!data.users?.length) {
       tbody.appendChild(emptyRow(7, 'Kullanıcı bulunamadı'));
-      document.getElementById('users-pagination').replaceChildren();
+      document.getElementById('users-pagination')?.replaceChildren();
       return;
     }
 
@@ -321,49 +321,47 @@
       const row = tbody.insertRow();
       if (u.is_banned) row.classList.add('admin-row--banned');
 
-      // Name
       const nameTd = document.createElement('td');
       nameTd.className = 'admin-td-name';
       nameTd.textContent = u.name;
-      if (u.is_admin) { nameTd.appendChild(document.createTextNode(' ')); nameTd.appendChild(chip('Admin', 'admin')); }
+      if (u.is_admin) {
+        nameTd.appendChild(document.createTextNode(' '));
+        nameTd.appendChild(chip('Admin', 'admin'));
+      }
 
-      // Status
       const statusTd = document.createElement('td');
       statusTd.appendChild(u.is_banned ? chip('Banlı', 'banned') : chip('Aktif', 'ok'));
 
-      // Actions
       const actTd = document.createElement('td');
       actTd.className = 'admin-td-actions';
 
       if (!u.is_admin) {
-        const banBtn = u.is_banned
-          ? mkBtn('Banı Kaldır', 'ok')
-          : mkBtn('Banla', 'warn');
-
-        banBtn.onclick = async () => {
-          const action = u.is_banned ? 'banını kaldırmak' : 'banlamak';
-          if (!await confirmDialog(`"${u.name}" kullanıcısını ${action} istediğinize emin misiniz?`)) return;
-          await runAction(banBtn, async () => {
-            const result = await api('PATCH', `/admin/users/${u.id}/${u.is_banned ? 'unban' : 'ban'}`);
-            if (result) { showToast(u.is_banned ? 'Ban kaldırıldı' : 'Kullanıcı banlandı'); loadUsers(usersPage); loadStats(); }
+        const banBtn = mkBtn(u.is_banned ? 'Banı Kaldır' : 'Banla', u.is_banned ? 'ok' : 'warn');
+        banBtn.addEventListener('click', async () => {
+          const verb = u.is_banned ? 'banını kaldırmak' : 'banlamak';
+          const ok = await confirmDialog(`"${u.name}" kullanıcısını ${verb} istediğinize emin misiniz?`);
+          if (!ok) return;
+          await doAction(banBtn, async () => {
+            const res = await api('PATCH', `/admin/users/${u.id}/${u.is_banned ? 'unban' : 'ban'}`);
+            if (res) { toast(u.is_banned ? 'Ban kaldırıldı ✓' : 'Kullanıcı banlandı ✓'); loadUsers(usersPage); loadStats(); }
           });
-        };
+        });
 
         const delBtn = mkBtn('Sil', 'danger');
-        delBtn.onclick = async () => {
-          if (!await confirmDialog(`"${u.name}" kullanıcısını kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
-          await runAction(delBtn, async () => {
-            const result = await api('DELETE', `/admin/users/${u.id}`);
-            if (result) { showToast('Kullanıcı silindi', 'ok'); loadUsers(usersPage); loadStats(); }
+        delBtn.addEventListener('click', async () => {
+          const ok = await confirmDialog(`"${u.name}" kullanıcısını kalıcı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`);
+          if (!ok) return;
+          await doAction(delBtn, async () => {
+            const res = await api('DELETE', `/admin/users/${u.id}`);
+            if (res) { toast('Kullanıcı silindi ✓'); loadUsers(usersPage); loadStats(); }
           });
-        };
+        });
 
         actTd.append(banBtn, delBtn);
       } else {
-        const prot = document.createElement('span');
-        prot.className = 'admin-td-protected';
-        prot.textContent = '—';
-        actTd.appendChild(prot);
+        const p = document.createElement('span');
+        p.className = 'admin-td-protected'; p.textContent = '—';
+        actTd.appendChild(p);
       }
 
       row.append(
@@ -388,11 +386,9 @@
 
   // ── Listings ──────────────────────────────────────────────────────────────
   let listingsPage = 1;
-  const expandedRows = new Set(); // track which listing IDs are expanded
 
   async function loadListings(page = 1) {
     listingsPage = page;
-    expandedRows.clear();
     const search   = (document.getElementById('listings-search')?.value ?? '').trim();
     const category = document.getElementById('listings-category')?.value ?? '';
     const status   = document.getElementById('listings-status')?.value ?? '';
@@ -401,18 +397,18 @@
     if (!data) return;
 
     const tbody = document.getElementById('listings-tbody');
+    if (!tbody) return;
     tbody.replaceChildren();
 
-    if (!data.listings.length) {
+    if (!data.listings?.length) {
       tbody.appendChild(emptyRow(10, 'İlan bulunamadı'));
-      document.getElementById('listings-pagination').replaceChildren();
+      document.getElementById('listings-pagination')?.replaceChildren();
       return;
     }
 
     data.listings.forEach(l => {
-      // Main row
       const row = tbody.insertRow();
-      row.dataset.listingId = l.id;
+      row.style.cursor = 'pointer';
 
       const catTd = document.createElement('td');
       catTd.appendChild(chip(l.category, 'cat'));
@@ -420,23 +416,29 @@
       const statusTd = document.createElement('td');
       statusTd.appendChild(chip(l.status, l.status === 'aktif' ? 'ok' : 'off'));
 
-      // Delete button
       const actTd = document.createElement('td');
       actTd.className = 'admin-td-actions';
       const delBtn = mkBtn('Sil', 'danger');
-      delBtn.onclick = async () => {
-        if (!await confirmDialog(`"${l.title}" ilanını kalıcı olarak silmek istediğinize emin misiniz?`)) return;
-        await runAction(delBtn, async () => {
-          const result = await api('DELETE', `/admin/listings/${l.id}`);
-          if (result) { showToast('İlan silindi', 'ok'); loadListings(listingsPage); loadStats(); }
+      delBtn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const ok = await confirmDialog(`"${l.title}" ilanını kalıcı silmek istediğinize emin misiniz?`);
+        if (!ok) return;
+        await doAction(delBtn, async () => {
+          const res = await api('DELETE', `/admin/listings/${l.id}`);
+          if (res) { toast('İlan silindi ✓'); loadListings(listingsPage); loadStats(); }
         });
-      };
+      });
       actTd.appendChild(delBtn);
 
-      // Expand toggle
-      const expandTd = document.createElement('td');
-      expandTd.className = 'admin-td-expand';
-      expandTd.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4" stroke-linecap="round"/></svg>`;
+      // Chevron
+      const chevTd = document.createElement('td');
+      chevTd.className = 'admin-td-expand';
+      const chevSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevSvg.setAttribute('viewBox','0 0 16 16'); chevSvg.setAttribute('width','14'); chevSvg.setAttribute('height','14');
+      chevSvg.setAttribute('fill','none'); chevSvg.setAttribute('stroke','currentColor'); chevSvg.setAttribute('stroke-width','1.8');
+      const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d','M4 6l4 4 4-4'); p.setAttribute('stroke-linecap','round');
+      chevSvg.appendChild(p); chevTd.appendChild(chevSvg);
 
       row.append(
         td(l.id, 'admin-td-id'),
@@ -448,55 +450,45 @@
         td(l.expires_at ? fmtDate(l.expires_at) : '—'),
         td(l.view_count ?? 0),
         actTd,
-        expandTd,
+        chevTd,
       );
 
-      // Detail row (hidden)
+      // Detail expand row
       const detailRow = document.createElement('tr');
       detailRow.className = 'admin-detail-row';
       detailRow.style.display = 'none';
       const detailCell = document.createElement('td');
       detailCell.colSpan = 10;
-
       const inner = document.createElement('div');
       inner.className = 'admin-detail-inner';
 
-      function detailField(label, value, cls) {
+      const fields = [
+        ['Açıklama', l.description, 'admin-detail-desc'],
+        ['İletişim', l.contact, null],
+        ['Yazar E-posta', l.author_email, null],
+        ['Yayın Tarihi', fmtDate(l.created_at), null],
+        ['Bitiş Tarihi', l.expires_at ? fmtDate(l.expires_at) : 'Belirtilmemiş', null],
+        ['Görüntülenme', String(l.view_count ?? 0), null],
+      ];
+      fields.forEach(([label, value, cls]) => {
         const wrap = document.createElement('div');
         wrap.className = `admin-detail-field${cls ? ' ' + cls : ''}`;
         const lbl = document.createElement('span');
-        lbl.className = 'admin-detail-label';
-        lbl.textContent = label;
+        lbl.className = 'admin-detail-label'; lbl.textContent = label;
         const val = document.createElement('span');
-        val.className = 'admin-detail-val';
-        val.textContent = value || '—';
-        wrap.append(lbl, val);
-        return wrap;
-      }
-
-      inner.append(
-        detailField('Açıklama', l.description, 'admin-detail-desc'),
-        detailField('İletişim', l.contact),
-        detailField('Yazar E-posta', l.author_email),
-        detailField('Yayın Tarihi', fmtDate(l.created_at)),
-        detailField('Bitiş Tarihi', l.expires_at ? fmtDate(l.expires_at) : 'Belirtilmemiş'),
-        detailField('Görüntülenme', String(l.view_count ?? 0)),
-      );
+        val.className = 'admin-detail-val'; val.textContent = value || '—';
+        wrap.append(lbl, val); inner.appendChild(wrap);
+      });
 
       detailCell.appendChild(inner);
       detailRow.appendChild(detailCell);
       tbody.appendChild(detailRow);
 
-      // Toggle expand on row/expand cell click
-      const toggleExpand = () => {
-        const isOpen = detailRow.style.display !== 'none';
-        detailRow.style.display = isOpen ? 'none' : '';
-        row.classList.toggle('admin-tr-expanded', !isOpen);
-      };
-      row.style.cursor = 'pointer';
       row.addEventListener('click', e => {
-        if (e.target.closest('button')) return; // don't expand when clicking action buttons
-        toggleExpand();
+        if (e.target.closest('button')) return;
+        const open = detailRow.style.display !== 'none';
+        detailRow.style.display = open ? 'none' : '';
+        row.classList.toggle('admin-tr-expanded', !open);
       });
     });
 
@@ -505,14 +497,18 @@
 
   let listingsTimer;
   document.getElementById('listings-search')?.addEventListener('input', () => {
-    clearTimeout(listingsTimer);
-    listingsTimer = setTimeout(() => loadListings(1), 350);
+    clearTimeout(listingsTimer); listingsTimer = setTimeout(() => loadListings(1), 350);
   });
   document.getElementById('listings-category')?.addEventListener('change', () => loadListings(1));
   document.getElementById('listings-status')?.addEventListener('change',   () => loadListings(1));
 
   // ── Comments ──────────────────────────────────────────────────────────────
   let commentsPage = 1;
+
+  const CAT_LABELS = {
+    'ders-notu':'Ders Notu','staj':'Staj','yurt-kiralik-oda':'Yurt/Oda',
+    'ikinci-el':'İkinci El','etkinlik':'Etkinlik','genel':'Genel',
+  };
 
   async function loadComments(page = 1) {
     commentsPage = page;
@@ -521,33 +517,98 @@
     if (!data) return;
 
     const tbody = document.getElementById('comments-tbody');
+    if (!tbody) return;
     tbody.replaceChildren();
 
-    if (!data.comments.length) {
-      tbody.appendChild(emptyRow(6, 'Yorum bulunamadı'));
-      document.getElementById('comments-pagination').replaceChildren();
+    if (!data.comments?.length) {
+      tbody.appendChild(emptyRow(7, 'Yorum bulunamadı'));
+      document.getElementById('comments-pagination')?.replaceChildren();
       return;
     }
 
     data.comments.forEach(c => {
       const row = tbody.insertRow();
+
+      // Author cell — name + email
+      const authorTd = document.createElement('td');
+      const authorName = document.createElement('div');
+      authorName.style.cssText = 'font-weight:700;color:#1e1b4b;font-size:.82rem;';
+      authorName.textContent = c.author_name;
+      const authorEmail = document.createElement('div');
+      authorEmail.style.cssText = 'font-size:.72rem;color:#9ca3af;margin-top:.1rem;';
+      authorEmail.textContent = c.author_email;
+      authorTd.append(authorName, authorEmail);
+
+      // Content cell — preview + expand
+      const contentTd = document.createElement('td');
+      contentTd.className = 'admin-td-content';
+      contentTd.style.maxWidth = '220px';
+
+      const preview = document.createElement('div');
+      preview.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem;color:#374151;';
+      preview.textContent = c.content;
+
+      const full = document.createElement('div');
+      full.style.cssText = 'display:none;white-space:pre-wrap;font-size:.8rem;color:#4b5563;line-height:1.5;padding:.375rem .5rem;background:#f5f3ff;border-radius:6px;margin-top:.375rem;max-height:120px;overflow-y:auto;';
+      full.textContent = c.content;
+
+      preview.style.cursor = 'pointer';
+      preview.title = 'Tıkla: tam içeriği gör';
+      preview.addEventListener('click', e => {
+        e.stopPropagation();
+        const showing = full.style.display !== 'none';
+        full.style.display = showing ? 'none' : '';
+        preview.style.whiteSpace = showing ? 'nowrap' : 'normal';
+      });
+
+      contentTd.append(preview, full);
+
+      // Listing cell — title + category badge
+      const listingTd = document.createElement('td');
+      const listingTitle = document.createElement('div');
+      listingTitle.style.cssText = 'font-size:.82rem;font-weight:600;color:#1e1b4b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;';
+      listingTitle.textContent = c.listing_title;
+
+      if (c.listing_category) {
+        const catBadge = chip(CAT_LABELS[c.listing_category] || c.listing_category, 'cat');
+        catBadge.style.marginTop = '.2rem';
+        catBadge.style.display = 'block';
+        catBadge.style.fontSize = '.65rem';
+        listingTd.append(listingTitle, catBadge);
+      } else {
+        listingTd.appendChild(listingTitle);
+      }
+
+      // Reply indicator
+      const replyTd = document.createElement('td');
+      if (c.parent_id) {
+        const badge = chip('Yanıt', 'warn');
+        replyTd.appendChild(badge);
+      } else {
+        replyTd.textContent = '—';
+        replyTd.style.color = '#d1d5db';
+      }
+
+      // Actions
       const actTd = document.createElement('td');
       actTd.className = 'admin-td-actions';
       const delBtn = mkBtn('Sil', 'danger');
-      delBtn.onclick = async () => {
-        if (!await confirmDialog('Bu yorumu kalıcı olarak silmek istediğinize emin misiniz?')) return;
-        await runAction(delBtn, async () => {
-          const result = await api('DELETE', `/admin/comments/${c.id}`);
-          if (result) { showToast('Yorum silindi', 'ok'); loadComments(commentsPage); loadStats(); }
+      delBtn.addEventListener('click', async () => {
+        const ok = await confirmDialog('Bu yorumu kalıcı silmek istediğinize emin misiniz?');
+        if (!ok) return;
+        await doAction(delBtn, async () => {
+          const res = await api('DELETE', `/admin/comments/${c.id}`);
+          if (res) { toast('Yorum silindi ✓'); loadComments(commentsPage); loadStats(); }
         });
-      };
+      });
       actTd.appendChild(delBtn);
 
       row.append(
         td(c.id, 'admin-td-id'),
-        td(c.content, 'admin-td-content'),
-        td(c.author_name),
-        td(c.listing_title, 'admin-td-title'),
+        contentTd,
+        authorTd,
+        listingTd,
+        replyTd,
         td(timeAgo(c.created_at)),
         actTd,
       );
@@ -558,7 +619,6 @@
 
   let commentsTimer;
   document.getElementById('comments-search')?.addEventListener('input', () => {
-    clearTimeout(commentsTimer);
-    commentsTimer = setTimeout(() => loadComments(1), 350);
+    clearTimeout(commentsTimer); commentsTimer = setTimeout(() => loadComments(1), 350);
   });
 })();
