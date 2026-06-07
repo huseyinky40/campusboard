@@ -1,0 +1,32 @@
+name: Daily Seed
+
+on:
+  schedule:
+    # Her gün saat 08:00 TR (UTC+3 = 05:00 UTC)
+    - cron: '0 5 * * *'
+  workflow_dispatch: # Manuel tetikleme için
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: campusboard/backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: campusboard/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run daily seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NODE_ENV: production
+        run: node scripts/seed-daily.js
