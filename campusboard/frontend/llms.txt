@@ -44,6 +44,10 @@ Website: https://campusboard.app
 Register: https://campusboard.app/register
 Login: https://campusboard.app/login
 
+## Markdown Mirrors (AI-readable plain-text versions of each page)
+- Home page: https://campusboard.app/index.md
+- App / Listing Feed: https://campusboard.app/app.md
+
 ## Key Facts
 - Student-only platform: university email verification required
 - Free and unlimited listings
