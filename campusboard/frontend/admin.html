@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusBoard — Admin Paneli</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/campusboard_app_icon.svg" />
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="admin-body">
+
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar-brand">
+        <img src="/assets/campusboard_app_icon.svg" width="28" height="28" alt="" />
+        <span>Admin Panel</span>
+      </div>
+      <nav class="admin-nav">
+        <button class="admin-nav-item active" data-tab="dashboard">
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>
+          Dashboard
+        </button>
+        <button class="admin-nav-item" data-tab="users">
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="7" r="3.5"/><path d="M3 17c0-3.3 3.1-6 7-6s7 2.7 7 6"/></svg>
+          Kullanıcılar
+        </button>
+        <button class="admin-nav-item" data-tab="listings">
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M6 7h8M6 10h8M6 13h5"/></svg>
+          İlanlar
+        </button>
+        <button class="admin-nav-item" data-tab="comments">
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 4a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H6l-4 3V4z"/></svg>
+          Yorumlar
+        </button>
+      </nav>
+      <div class="admin-sidebar-footer">
+        <a href="/app" class="admin-back-link">← Uygulamaya Dön</a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main">
+
+      <!-- Dashboard Tab -->
+      <div class="admin-tab active" id="tab-dashboard">
+        <div class="admin-page-header">
+          <h1>Dashboard</h1>
+          <span class="admin-badge">Yönetici</span>
+        </div>
+        <div class="admin-stats-grid" id="stats-grid">
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Toplam Kullanıcı</span>
+            <span class="admin-stat-value" id="stat-users">—</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Toplam İlan</span>
+            <span class="admin-stat-value" id="stat-listings">—</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Aktif İlan</span>
+            <span class="admin-stat-value" id="stat-active">—</span>
+          </div>
+          <div class="admin-stat-card">
+            <span class="admin-stat-label">Toplam Yorum</span>
+            <span class="admin-stat-value" id="stat-comments">—</span>
+          </div>
+          <div class="admin-stat-card admin-stat-card--warn">
+            <span class="admin-stat-label">Banlı Kullanıcı</span>
+            <span class="admin-stat-value" id="stat-banned">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div class="admin-tab" id="tab-users">
+        <div class="admin-page-header">
+          <h1>Kullanıcılar</h1>
+          <div class="admin-search-wrap">
+            <input type="search" id="users-search" class="admin-search" placeholder="İsim veya e-posta ara…" />
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>İsim</th>
+                <th>E-posta</th>
+                <th>Fakülte</th>
+                <th>Kayıt</th>
+                <th>Durum</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7" class="admin-table-empty">Yükleniyor…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="admin-pagination" id="users-pagination"></div>
+      </div>
+
+      <!-- Listings Tab -->
+      <div class="admin-tab" id="tab-listings">
+        <div class="admin-page-header">
+          <h1>İlanlar</h1>
+          <div class="admin-filters">
+            <input type="search" id="listings-search" class="admin-search" placeholder="İlan ara…" />
+            <select id="listings-category" class="admin-select">
+              <option value="">Tüm kategoriler</option>
+              <option value="ders-notu">Ders Notu</option>
+              <option value="staj">Staj</option>
+              <option value="yurt-kiralik-oda">Yurt/Kiralık Oda</option>
+              <option value="ikinci-el">İkinci El</option>
+              <option value="etkinlik">Etkinlik</option>
+              <option value="genel">Genel</option>
+            </select>
+            <select id="listings-status" class="admin-select">
+              <option value="">Tüm durumlar</option>
+              <option value="aktif">Aktif</option>
+              <option value="kapali">Kapalı</option>
+            </select>
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="listings-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Başlık</th>
+                <th>Kategori</th>
+                <th>Yazar</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="listings-tbody">
+              <tr><td colspan="7" class="admin-table-empty">Yükleniyor…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="admin-pagination" id="listings-pagination"></div>
+      </div>
+
+      <!-- Comments Tab -->
+      <div class="admin-tab" id="tab-comments">
+        <div class="admin-page-header">
+          <h1>Yorumlar</h1>
+          <div class="admin-search-wrap">
+            <input type="search" id="comments-search" class="admin-search" placeholder="Yorum ara…" />
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="comments-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>İçerik</th>
+                <th>Yazar</th>
+                <th>İlan</th>
+                <th>Tarih</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="comments-tbody">
+              <tr><td colspan="6" class="admin-table-empty">Yükleniyor…</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="admin-pagination" id="comments-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="admin-modal-overlay hidden" id="confirm-overlay">
+    <div class="admin-modal">
+      <p id="confirm-message">Bu işlemi onaylıyor musunuz?</p>
+      <div class="admin-modal-actions">
+        <button class="admin-btn admin-btn--ghost" id="confirm-cancel">İptal</button>
+        <button class="admin-btn admin-btn--danger" id="confirm-ok">Onayla</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

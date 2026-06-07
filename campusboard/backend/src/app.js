@@ -21,6 +21,9 @@ const { createCommentsRouter } = require('./routes/comments');
 const { StatsService } = require('./services/statsService');
 const { createStatsRouter } = require('./routes/stats');
 const { createUniversityRouter } = require('./routes/university');
+const { AdminService } = require('./services/adminService');
+const { AdminController } = require('./controllers/adminController');
+const { createAdminRouter } = require('./routes/admin');
 const { requireAuth } = require('./middleware/auth');
 const rateLimit = require('express-rate-limit');
 
@@ -39,6 +42,7 @@ const swaggerOptions = {
       { name: 'Comments',  description: 'Yorum işlemleri (JWT gerekli)' },
       { name: 'Favorites', description: 'Favori işlemleri (JWT gerekli)' },
       { name: 'Meta',      description: 'Kategori ve fakülte listeleri' },
+      { name: 'Admin',     description: 'Yönetici paneli (is_admin gerekli)' },
     ],
     components: {
       securitySchemes: {
@@ -83,6 +87,8 @@ async function createApp(dbPath) {
   const commentController = new CommentController(commentService);
 
   const statsService = new StatsService(db);
+  const adminService = new AdminService(db);
+  const adminController = new AdminController(adminService);
 
   const authMiddleware = requireAuth(authService);
 
@@ -135,6 +141,7 @@ async function createApp(dbPath) {
   app.use('/api/favorites', authMiddleware, createFavoritesRouter(favoriteController));
   app.use('/api/stats', authMiddleware, createStatsRouter(statsService));
   app.use('/api/university', authMiddleware, createUniversityRouter());
+  app.use('/api/admin', authMiddleware, createAdminRouter(adminController));
 
   app.get('/api', (req, res) => {
     res.json({ status: 'ok' });
@@ -148,6 +155,7 @@ async function createApp(dbPath) {
   app.get('/forgot-password', (req, res) => res.sendFile(path.join(frontendDir, 'forgot-password.html')));
   app.get('/reset-password',  (req, res) => res.sendFile(path.join(frontendDir, 'reset-password.html')));
   app.get('/app',             (req, res) => res.sendFile(path.join(frontendDir, 'app.html')));
+  app.get('/admin',           (req, res) => res.sendFile(path.join(frontendDir, 'admin.html')));
   app.get('*',                (req, res) => res.sendFile(path.join(frontendDir, 'index.html')));
 
   return app;

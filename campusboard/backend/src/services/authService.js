@@ -230,7 +230,8 @@ class AuthService {
   async getSessionUser(userId) {
     const user = await this.db.get(
       `SELECT id, email, name, department, faculty, phone, student_no, avatar,
-              university_slug, university_name, university_domain, created_at
+              university_slug, university_name, university_domain,
+              is_admin, is_banned, created_at
        FROM users WHERE id = ?`,
       [userId]
     );
@@ -327,6 +328,8 @@ class AuthService {
       university_name: university.name,
       university_domain: university.domain,
       university: publicUniversity(university),
+      is_admin:  Boolean(user.is_admin),
+      is_banned: Boolean(user.is_banned),
       created_at: user.created_at,
     };
   }

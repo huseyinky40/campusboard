@@ -49,8 +49,10 @@ async function createPgAdapter(connectionString) {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_hash     TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires  TIMESTAMPTZ`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_slug      TEXT        NOT NULL DEFAULT 'istanbul-arel-university'`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_name      TEXT        NOT NULL DEFAULT 'İstanbul Arel Üniversitesi'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_name      TEXT        NOT NULL DEFAULT 'İstanbul Üniversitesi'`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS university_domain    TEXT        NOT NULL DEFAULT 'istanbularel.edu.tr'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin            BOOLEAN     NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned           BOOLEAN     NOT NULL DEFAULT FALSE`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS listings (
@@ -153,6 +155,8 @@ function createSqliteAdapter() {
       verify_token_expires TEXT,
       reset_token_hash     TEXT,
       reset_token_expires  TEXT,
+      is_admin             INTEGER NOT NULL DEFAULT 0,
+      is_banned            INTEGER NOT NULL DEFAULT 0,
       created_at           TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE TABLE IF NOT EXISTS listings (
