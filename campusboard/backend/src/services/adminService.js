@@ -70,18 +70,21 @@ class AdminService {
 
   // ── Listings ────────────────────────────────────────────────────────────────
 
-  async getListings({ search = '', category = '', status = '', page = 1, limit = 30 } = {}) {
+  async getListings({ search = '', category = '', status = '', author = '', page = 1, limit = 30 } = {}) {
     const offset = (page - 1) * limit;
     const pattern = `%${search}%`;
+    const authorPattern = `%${author}%`;
     const conditions = ['(l.title ILIKE ? OR l.description ILIKE ?)'];
     const params = [pattern, pattern];
-    if (category) { conditions.push('l.category = ?'); params.push(category); }
-    if (status)   { conditions.push('l.status = ?');   params.push(status); }
+    if (category) { conditions.push('l.category = ?');            params.push(category); }
+    if (status)   { conditions.push('l.status = ?');              params.push(status); }
+    if (author)   { conditions.push('(u.name ILIKE ? OR u.email ILIKE ?)'); params.push(authorPattern, authorPattern); }
     const where = conditions.join(' AND ');
 
     const listings = await this.db.all(
-      `SELECT l.id, l.title, l.category, l.status, l.created_at, l.view_count,
-              u.name AS author_name, u.email AS author_email
+      `SELECT l.id, l.title, l.description, l.category, l.status,
+              l.created_at, l.expires_at, l.contact, l.image, l.view_count,
+              u.id AS author_id, u.name AS author_name, u.email AS author_email
        FROM listings l
        JOIN users u ON u.id = l.user_id
        WHERE ${where}
@@ -90,7 +93,7 @@ class AdminService {
       [...params, limit, offset],
     );
     const total = await this.db.get(
-      `SELECT COUNT(*) AS count FROM listings l WHERE ${where}`,
+      `SELECT COUNT(*) AS count FROM listings l JOIN users u ON u.id = l.user_id WHERE ${where}`,
       params,
     );
     return { listings, total: Number(total?.count || 0) };

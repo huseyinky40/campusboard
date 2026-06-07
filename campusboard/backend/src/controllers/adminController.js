@@ -56,8 +56,8 @@ class AdminController {
 
   async getListings(req, res) {
     try {
-      const { search = '', category = '', status = '', page = 1, limit = 30 } = req.query;
-      const result = await this.adminService.getListings({ search, category, status, page: Number(page), limit: Number(limit) });
+      const { search = '', category = '', status = '', author = '', page = 1, limit = 30 } = req.query;
+      const result = await this.adminService.getListings({ search, category, status, author, page: Number(page), limit: Number(limit) });
       res.json(result);
     } catch (e) {
       res.status(500).json({ error: 'Sunucu hatası' });
