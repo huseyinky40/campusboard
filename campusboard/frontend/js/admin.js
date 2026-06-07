@@ -105,10 +105,102 @@
       const tab = btn.dataset.tab;
       setTab(tab);
       if (tab === 'users')    loadUsers(1);
-      if (tab === 'listings') loadListings(1);
+      if (tab === 'listings') { initUserPicker(); loadListings(1); }
       if (tab === 'comments') loadComments(1);
     });
   });
+
+  // ── User Picker Dropdown ──────────────────────────────────────────────────
+  let allUsers = [];           // cache
+  let selectedAuthorId  = ''; // '' = all
+  let userPickerLoaded  = false;
+
+  const pickerBtn    = document.getElementById('user-picker-btn');
+  const pickerPanel  = document.getElementById('user-picker-panel');
+  const pickerLabel  = document.getElementById('user-picker-label');
+  const pickerSearch = document.getElementById('user-picker-search');
+  const pickerList   = document.getElementById('user-picker-list');
+  const pickerAll    = document.getElementById('user-picker-all');
+
+  function openUserPicker() {
+    pickerBtn?.classList.add('open');
+    pickerPanel?.classList.add('open');
+    pickerBtn?.setAttribute('aria-expanded', 'true');
+    pickerSearch?.focus();
+  }
+  function closeUserPicker() {
+    pickerBtn?.classList.remove('open');
+    pickerPanel?.classList.remove('open');
+    pickerBtn?.setAttribute('aria-expanded', 'false');
+  }
+
+  pickerBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    pickerPanel?.classList.contains('open') ? closeUserPicker() : openUserPicker();
+  });
+
+  // Close on outside click
+  document.addEventListener('click', e => {
+    if (!document.getElementById('admin-user-picker')?.contains(e.target)) closeUserPicker();
+  });
+
+  pickerAll?.addEventListener('click', () => {
+    selectedAuthorId = '';
+    pickerLabel.textContent = 'Tüm kullanıcılar';
+    pickerList?.querySelectorAll('.admin-user-picker-item').forEach(i => i.classList.remove('selected'));
+    pickerAll.classList.add('selected');
+    closeUserPicker();
+    loadListings(1);
+  });
+
+  function renderUserList(filterText = '') {
+    if (!pickerList) return;
+    pickerList.replaceChildren();
+    const q = filterText.toLowerCase();
+    const filtered = allUsers.filter(u =>
+      u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+    );
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'admin-user-picker-empty';
+      empty.textContent = 'Kullanıcı bulunamadı';
+      pickerList.appendChild(empty);
+      return;
+    }
+    filtered.forEach(u => {
+      const item = document.createElement('div');
+      item.className = `admin-user-picker-item${String(selectedAuthorId) === String(u.id) ? ' selected' : ''}`;
+      item.setAttribute('role', 'option');
+      const name = document.createElement('span');
+      name.className = 'admin-user-picker-item-name';
+      name.textContent = u.name;
+      const email = document.createElement('span');
+      email.className = 'admin-user-picker-item-email';
+      email.textContent = u.email;
+      item.append(name, email);
+      item.addEventListener('click', () => {
+        selectedAuthorId = u.id;
+        pickerLabel.textContent = u.name;
+        pickerAll.classList.remove('selected');
+        pickerList.querySelectorAll('.admin-user-picker-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        closeUserPicker();
+        loadListings(1);
+      });
+      pickerList.appendChild(item);
+    });
+  }
+
+  pickerSearch?.addEventListener('input', () => renderUserList(pickerSearch.value));
+
+  async function initUserPicker() {
+    if (userPickerLoaded) return;
+    const data = await api('GET', '/admin/users/list');
+    if (!data) return;
+    allUsers = data.users;
+    userPickerLoaded = true;
+    renderUserList();
+  }
 
   // ── DOM helpers ───────────────────────────────────────────────────────────
   function td(text, cls) {
@@ -302,10 +394,9 @@
     listingsPage = page;
     expandedRows.clear();
     const search   = (document.getElementById('listings-search')?.value ?? '').trim();
-    const author   = (document.getElementById('listings-author')?.value ?? '').trim();
     const category = document.getElementById('listings-category')?.value ?? '';
     const status   = document.getElementById('listings-status')?.value ?? '';
-    const params   = new URLSearchParams({ search, author, category, status, page, limit: 30 });
+    const params   = new URLSearchParams({ search, authorId: selectedAuthorId, category, status, page, limit: 30 });
     const data = await api('GET', `/admin/listings?${params}`);
     if (!data) return;
 
@@ -412,14 +503,10 @@
     renderPagination('listings-pagination', page, data.total, 30, loadListings);
   }
 
-  let listingsTimer, authorTimer;
+  let listingsTimer;
   document.getElementById('listings-search')?.addEventListener('input', () => {
     clearTimeout(listingsTimer);
     listingsTimer = setTimeout(() => loadListings(1), 350);
-  });
-  document.getElementById('listings-author')?.addEventListener('input', () => {
-    clearTimeout(authorTimer);
-    authorTimer = setTimeout(() => loadListings(1), 350);
   });
   document.getElementById('listings-category')?.addEventListener('change', () => loadListings(1));
   document.getElementById('listings-status')?.addEventListener('change',   () => loadListings(1));

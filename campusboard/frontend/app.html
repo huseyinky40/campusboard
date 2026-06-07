@@ -1110,7 +1110,20 @@
           </div>
           <div class="admin-filters-bar">
             <input type="search" id="listings-search" class="admin-search" placeholder="İlan başlığı ara…" />
-            <input type="search" id="listings-author" class="admin-search" placeholder="Kullanıcı ara…" style="min-width:140px" />
+            <!-- User picker dropdown -->
+            <div class="admin-user-picker" id="admin-user-picker">
+              <button type="button" class="admin-user-picker-btn" id="user-picker-btn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="admin-user-picker-label" id="user-picker-label">Tüm kullanıcılar</span>
+                <svg class="admin-user-picker-chevron" viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="admin-user-picker-panel" id="user-picker-panel" role="listbox">
+                <input type="search" class="admin-user-picker-search" id="user-picker-search" placeholder="İsim ara…" autocomplete="off" />
+                <div class="admin-user-picker-item--all" id="user-picker-all" role="option">Tüm kullanıcılar</div>
+                <div class="admin-user-picker-list" id="user-picker-list">
+                  <div class="admin-user-picker-empty">Yükleniyor…</div>
+                </div>
+              </div>
+            </div>
             <select id="listings-category" class="admin-select">
               <option value="">Tüm kategoriler</option>
               <option value="ders-notu">Ders Notu</option>

@@ -115,6 +115,20 @@ async function createPgAdapter(connectionString) {
   `);
   await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES comments(id) ON DELETE CASCADE`);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id          SERIAL PRIMARY KEY,
+      admin_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      action      TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id   INTEGER,
+      details     JSONB,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_id   ON audit_logs(admin_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)`);
+
   return {
     async get(sql, params = []) {
       const { rows } = await pool.query(toPositional(sql, params));
@@ -200,6 +214,15 @@ function createSqliteAdapter() {
       parent_id  INTEGER REFERENCES comments(id) ON DELETE CASCADE,
       content    TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      action      TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id   INTEGER,
+      details     TEXT,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 

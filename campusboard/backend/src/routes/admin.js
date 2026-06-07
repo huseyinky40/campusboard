@@ -48,7 +48,8 @@ function createAdminRouter(controller) {
    *       200:
    *         description: Kullanıcı listesi
    */
-  router.get('/users', (req, res) => controller.getUsers(req, res));
+  router.get('/users',      (req, res) => controller.getUsers(req, res));
+  router.get('/users/list', (req, res) => controller.getUserList(req, res));
 
   /**
    * @swagger
@@ -164,6 +165,17 @@ function createAdminRouter(controller) {
    *         schema: { type: integer }
    */
   router.delete('/comments/:id', (req, res) => controller.deleteComment(req, res));
+
+  /**
+   * @swagger
+   * /api/admin/audit-logs:
+   *   get:
+   *     summary: Denetim kayıtlarını listele
+   *     tags: [Admin]
+   *     security:
+   *       - bearerAuth: []
+   */
+  router.get('/audit-logs', (req, res) => controller.getAuditLogs(req, res));
 
   return router;
 }
