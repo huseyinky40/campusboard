@@ -6534,3 +6534,34 @@ textarea { resize: vertical; min-height: 110px; }
   .admin-nav-item { justify-content: center; padding: .625rem; }
   .admin-main { padding: 1rem; }
 }
+
+/* Admin overlay — uygulama içi full-screen panel */
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #f8f7ff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.admin-overlay.hidden { display: none; }
+.admin-overlay .admin-layout {
+  flex: 1;
+  overflow: hidden;
+}
+.admin-overlay .admin-main {
+  overflow-y: auto;
+  height: 100%;
+}
+.admin-back-link {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: .8rem;
+  color: #a5b4fc;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.admin-back-link:hover { color: #fff; }

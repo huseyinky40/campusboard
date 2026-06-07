@@ -155,6 +155,11 @@ const App = (() => {
       const avatarEl = document.getElementById('header-avatar');
       if (avatarEl) avatarEl.innerHTML = avatarHTML(user.name, user.avatar, 28);
       renderCampusIdentity(user);
+      // Admin butonu — sadece is_admin kullanıcılara göster
+      if (user.is_admin) {
+        const adminBtn = document.getElementById('btn-admin');
+        if (adminBtn) adminBtn.classList.remove('hidden');
+      }
     } catch {}
   }
 

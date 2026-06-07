@@ -1,52 +1,59 @@
+/* Admin Panel — uygulama içi overlay modülü */
 (() => {
   'use strict';
 
   const API_BASE = '/api';
-  const token = localStorage.getItem('token');
 
-  // ── Auth guard ────────────────────────────────────────────────────────────
-  if (!token) { window.location.href = '/login'; return; }
+  function getToken() { return localStorage.getItem('cb_token'); }
 
+  // ── Overlay aç/kapat ──────────────────────────────────────────────────────
+  const overlay = document.getElementById('admin-overlay');
+  if (!overlay) return; // admin HTML yüklü değilse çık
+
+  function openPanel() {
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    loadStats();
+    loadUsers();
+    // aktif tab'ı dashboard'a sıfırla
+    setActiveTab('dashboard');
+  }
+
+  function closePanel() {
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('admin-close')?.addEventListener('click', closePanel);
+  document.getElementById('btn-admin')?.addEventListener('click', () => {
+    // dropdown'ı kapat
+    document.getElementById('user-dropdown')?.classList.remove('open');
+    openPanel();
+  });
+
+  // ── API helper ────────────────────────────────────────────────────────────
   async function apiFetch(method, path, body) {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${getToken()}`,
       },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401) { window.location.href = '/login'; return null; }
-    if (res.status === 403) {
-      const msg = document.createElement('div');
-      msg.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:12px;font-family:sans-serif;';
-      const h2 = document.createElement('h2');
-      h2.textContent = 'Erişim Reddedildi';
-      const p = document.createElement('p');
-      p.textContent = 'Bu sayfaya erişim için yönetici yetkisi gereklidir.';
-      const a = document.createElement('a');
-      a.href = '/app';
-      a.textContent = '← Uygulamaya Dön';
-      a.style.color = '#7c3aed';
-      msg.append(h2, p, a);
-      document.body.replaceChildren(msg);
-      return null;
-    }
     return res.json();
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function setText(el, text) { el.textContent = String(text ?? ''); }
-
+  // ── DOM helpers (XSS-safe: textContent only) ──────────────────────────────
   function timeAgo(dateStr) {
     const diff = (Date.now() - new Date(dateStr)) / 1000;
-    if (diff < 60) return 'az önce';
-    if (diff < 3600) return `${Math.floor(diff / 60)} dk önce`;
+    if (diff < 60)    return 'az önce';
+    if (diff < 3600)  return `${Math.floor(diff / 60)} dk önce`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} sa önce`;
     return `${Math.floor(diff / 86400)} gün önce`;
   }
 
-  /** Build a <td> whose text content is set safely */
   function td(text, className) {
     const el = document.createElement('td');
     if (className) el.className = className;
@@ -54,7 +61,6 @@
     return el;
   }
 
-  /** Build a <span class="admin-chip ..."> */
   function chip(text, mod) {
     const el = document.createElement('span');
     el.className = `admin-chip admin-chip--${mod}`;
@@ -62,46 +68,55 @@
     return el;
   }
 
-  /** Build an action button with data-* attributes (no user data in onclick) */
   function actionBtn(label, mod, dataAttrs) {
     const btn = document.createElement('button');
     btn.className = `admin-btn admin-btn--sm admin-btn--${mod}`;
     btn.textContent = label;
-    Object.entries(dataAttrs).forEach(([k, v]) => btn.dataset[k] = v);
+    Object.entries(dataAttrs).forEach(([k, v]) => (btn.dataset[k] = v));
     return btn;
   }
 
   // ── Confirm modal ─────────────────────────────────────────────────────────
   let confirmResolve = null;
-  const overlay    = document.getElementById('confirm-overlay');
-  const confirmMsg = document.getElementById('confirm-message');
-  document.getElementById('confirm-cancel').onclick = () => { overlay.classList.add('hidden'); confirmResolve?.(false); };
-  document.getElementById('confirm-ok').onclick     = () => { overlay.classList.add('hidden'); confirmResolve?.(true); };
+  const confirmOverlay = document.getElementById('confirm-overlay');
+  const confirmMsg     = document.getElementById('confirm-message');
+
+  document.getElementById('confirm-cancel')?.addEventListener('click', () => {
+    confirmOverlay.classList.add('hidden');
+    confirmResolve?.(false);
+  });
+  document.getElementById('confirm-ok')?.addEventListener('click', () => {
+    confirmOverlay.classList.add('hidden');
+    confirmResolve?.(true);
+  });
 
   function confirmDialog(msg) {
     confirmMsg.textContent = msg;
-    overlay.classList.remove('hidden');
+    confirmOverlay.classList.remove('hidden');
     return new Promise(r => { confirmResolve = r; });
   }
 
   // ── Tab switching ─────────────────────────────────────────────────────────
-  const navItems = document.querySelectorAll('.admin-nav-item');
-  const tabs     = document.querySelectorAll('.admin-tab');
+  const navItems = overlay.querySelectorAll('.admin-nav-item');
+  const tabs     = overlay.querySelectorAll('.admin-tab');
+
+  function setActiveTab(name) {
+    navItems.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    tabs.forEach(t => t.classList.toggle('active', t.id === `tab-${name}`));
+  }
 
   navItems.forEach(btn => {
     btn.addEventListener('click', () => {
-      navItems.forEach(b => b.classList.remove('active'));
-      tabs.forEach(t => t.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-      if (btn.dataset.tab === 'users')    loadUsers();
-      if (btn.dataset.tab === 'listings') loadListings();
-      if (btn.dataset.tab === 'comments') loadComments();
+      const tab = btn.dataset.tab;
+      setActiveTab(tab);
+      if (tab === 'users')    loadUsers();
+      if (tab === 'listings') loadListings();
+      if (tab === 'comments') loadComments();
     });
   });
 
-  // ── Event delegation for table actions ───────────────────────────────────
-  document.addEventListener('click', async e => {
+  // ── Event delegation — tüm action butonları ───────────────────────────────
+  overlay.addEventListener('click', async e => {
     const btn = e.target.closest('button[data-action]');
     if (!btn) return;
     const { action, id, name } = btn.dataset;
@@ -132,7 +147,7 @@
     }
   });
 
-  // ── Dashboard ─────────────────────────────────────────────────────────────
+  // ── Dashboard stats ───────────────────────────────────────────────────────
   async function loadStats() {
     const data = await apiFetch('GET', '/admin/stats');
     if (!data) return;
@@ -148,7 +163,7 @@
 
   async function loadUsers(page = 1) {
     usersPage = page;
-    const search = document.getElementById('users-search').value.trim();
+    const search = document.getElementById('users-search')?.value.trim() ?? '';
     const data = await apiFetch('GET', `/admin/users?search=${encodeURIComponent(search)}&page=${page}&limit=30`);
     if (!data) return;
     const tbody = document.getElementById('users-tbody');
@@ -157,10 +172,9 @@
     if (!data.users.length) {
       const row = tbody.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 7;
-      cell.className = 'admin-table-empty';
+      cell.colSpan = 7; cell.className = 'admin-table-empty';
       cell.textContent = 'Kullanıcı bulunamadı';
-      document.getElementById('users-pagination').innerHTML = '';
+      document.getElementById('users-pagination').replaceChildren();
       return;
     }
 
@@ -168,24 +182,21 @@
       const row = tbody.insertRow();
       if (u.is_banned) row.classList.add('admin-row--banned');
 
-      // Name cell with optional Admin chip
       const nameTd = document.createElement('td');
       nameTd.textContent = u.name;
       if (u.is_admin) nameTd.appendChild(chip('Admin', 'admin'));
 
-      // Status cell
       const statusTd = document.createElement('td');
       statusTd.appendChild(u.is_banned ? chip('Banlı', 'banned') : chip('Aktif', 'ok'));
 
-      // Actions cell
       const actionsTd = document.createElement('td');
       actionsTd.className = 'admin-td-actions';
       if (!u.is_admin) {
-        if (u.is_banned) {
-          actionsTd.appendChild(actionBtn('Banı Kaldır', 'ghost', { action: 'unban', id: u.id }));
-        } else {
-          actionsTd.appendChild(actionBtn('Banla', 'warn', { action: 'ban', id: u.id, name: u.name }));
-        }
+        actionsTd.appendChild(
+          u.is_banned
+            ? actionBtn('Banı Kaldır', 'ghost', { action: 'unban', id: u.id })
+            : actionBtn('Banla', 'warn', { action: 'ban', id: u.id, name: u.name }),
+        );
         actionsTd.appendChild(actionBtn('Sil', 'danger', { action: 'delete-user', id: u.id, name: u.name }));
       } else {
         const prot = document.createElement('span');
@@ -209,7 +220,7 @@
   }
 
   let usersSearchTimer;
-  document.getElementById('users-search').addEventListener('input', () => {
+  document.getElementById('users-search')?.addEventListener('input', () => {
     clearTimeout(usersSearchTimer);
     usersSearchTimer = setTimeout(() => loadUsers(1), 350);
   });
@@ -219,9 +230,9 @@
 
   async function loadListings(page = 1) {
     listingsPage = page;
-    const search   = document.getElementById('listings-search').value.trim();
-    const category = document.getElementById('listings-category').value;
-    const status   = document.getElementById('listings-status').value;
+    const search   = document.getElementById('listings-search')?.value.trim() ?? '';
+    const category = document.getElementById('listings-category')?.value ?? '';
+    const status   = document.getElementById('listings-status')?.value ?? '';
     const params   = new URLSearchParams({ search, category, status, page, limit: 30 });
     const data = await apiFetch('GET', `/admin/listings?${params}`);
     if (!data) return;
@@ -231,22 +242,18 @@
     if (!data.listings.length) {
       const row = tbody.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 7;
-      cell.className = 'admin-table-empty';
+      cell.colSpan = 7; cell.className = 'admin-table-empty';
       cell.textContent = 'İlan bulunamadı';
-      document.getElementById('listings-pagination').innerHTML = '';
+      document.getElementById('listings-pagination').replaceChildren();
       return;
     }
 
     data.listings.forEach(l => {
       const row = tbody.insertRow();
-
       const catTd = document.createElement('td');
       catTd.appendChild(chip(l.category, 'cat'));
-
       const statusTd = document.createElement('td');
       statusTd.appendChild(chip(l.status, l.status === 'aktif' ? 'ok' : 'off'));
-
       const actionsTd = document.createElement('td');
       actionsTd.className = 'admin-td-actions';
       actionsTd.appendChild(actionBtn('Sil', 'danger', { action: 'delete-listing', id: l.id, name: l.title }));
@@ -266,19 +273,19 @@
   }
 
   let listingsSearchTimer;
-  document.getElementById('listings-search').addEventListener('input', () => {
+  document.getElementById('listings-search')?.addEventListener('input', () => {
     clearTimeout(listingsSearchTimer);
     listingsSearchTimer = setTimeout(() => loadListings(1), 350);
   });
-  document.getElementById('listings-category').addEventListener('change', () => loadListings(1));
-  document.getElementById('listings-status').addEventListener('change', () => loadListings(1));
+  document.getElementById('listings-category')?.addEventListener('change', () => loadListings(1));
+  document.getElementById('listings-status')?.addEventListener('change',   () => loadListings(1));
 
   // ── Comments ──────────────────────────────────────────────────────────────
   let commentsPage = 1;
 
   async function loadComments(page = 1) {
     commentsPage = page;
-    const search = document.getElementById('comments-search').value.trim();
+    const search = document.getElementById('comments-search')?.value.trim() ?? '';
     const data = await apiFetch('GET', `/admin/comments?search=${encodeURIComponent(search)}&page=${page}&limit=30`);
     if (!data) return;
     const tbody = document.getElementById('comments-tbody');
@@ -287,10 +294,9 @@
     if (!data.comments.length) {
       const row = tbody.insertRow();
       const cell = row.insertCell();
-      cell.colSpan = 6;
-      cell.className = 'admin-table-empty';
+      cell.colSpan = 6; cell.className = 'admin-table-empty';
       cell.textContent = 'Yorum bulunamadı';
-      document.getElementById('comments-pagination').innerHTML = '';
+      document.getElementById('comments-pagination').replaceChildren();
       return;
     }
 
@@ -314,7 +320,7 @@
   }
 
   let commentsSearchTimer;
-  document.getElementById('comments-search').addEventListener('input', () => {
+  document.getElementById('comments-search')?.addEventListener('input', () => {
     clearTimeout(commentsSearchTimer);
     commentsSearchTimer = setTimeout(() => loadComments(1), 350);
   });
@@ -346,8 +352,4 @@
       el.appendChild(next);
     }
   }
-
-  // ── Init ──────────────────────────────────────────────────────────────────
-  loadStats();
-  loadUsers();
 })();
