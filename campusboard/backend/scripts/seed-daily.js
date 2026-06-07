@@ -347,11 +347,6 @@ function generateListing(category) {
 
 const ALL_CATEGORIES = ['ders-notu','ikinci-el','etkinlik','staj','kayip-bulundu','genel'];
 
-function randomPastDate(maxDaysAgo = 60) {
-  const ms = Date.now() - Math.random() * maxDaysAgo * 86_400_000;
-  return new Date(ms).toISOString();
-}
-
 function randomFutureDate(minDays = 7, maxDays = 60) {
   const ms = Date.now() + (minDays + Math.random() * (maxDays - minDays)) * 86_400_000;
   return new Date(ms).toISOString();
@@ -372,7 +367,7 @@ async function run() {
     const category   = pick(ALL_CATEGORIES);
     const listing    = generateListing(category);
     const userId     = pick(users).id;
-    const createdAt  = randomPastDate(60);
+    const createdAt  = new Date().toISOString(); // bugünün tarihi
     const expiresAt  = Math.random() > 0.5 ? randomFutureDate(7, 60) : null;
     await db.run(
       `INSERT INTO listings
