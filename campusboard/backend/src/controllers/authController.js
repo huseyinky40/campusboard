@@ -24,6 +24,8 @@ class AuthController {
     } catch (err) {
       if (err.type === 'validation' || err.type === 'auth')
         return res.status(401).json({ errors: err.errors });
+      if (err.type === 'banned')
+        return res.status(403).json({ type: 'banned', error: 'Hesabınız askıya alınmıştır' });
       if (err.type === 'unverified')
         return res.status(403).json({ type: 'unverified', errors: err.errors });
       res.status(500).json({ error: 'Sunucu hatası' });

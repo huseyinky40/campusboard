@@ -209,6 +209,9 @@ class AuthService {
     if (!user || !bcrypt.compareSync(data.password, user.password))
       throw { type: 'auth', errors: ['E-posta veya şifre hatalı'] };
 
+    if (user.is_banned)
+      throw { type: 'banned', errors: ['Hesabınız askıya alınmıştır'] };
+
     if (this.emailService && !user.email_verified)
       throw { type: 'unverified', errors: ['E-posta adresinizi doğrulamanız gerekiyor'] };
 

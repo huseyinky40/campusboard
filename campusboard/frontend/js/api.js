@@ -24,6 +24,15 @@ const Api = {
     }
 
     const data = await res.json();
+
+    // Account banned — show full-screen ban notice
+    if (res.status === 403 && data.error === 'Hesabınız askıya alınmıştır') {
+      localStorage.removeItem('cb_token');
+      localStorage.removeItem('cb_user');
+      Api._showBanScreen();
+      return;
+    }
+
     if (!res.ok) throw { status: res.status, data };
     return data;
   },
@@ -67,4 +76,48 @@ const Api = {
   getComments(listingId)                         { return this.request('GET',    `/listings/${listingId}/comments`); },
   createComment(listingId, content, parentId)    { return this.request('POST',   `/listings/${listingId}/comments`, { content, parent_id: parentId || null }); },
   deleteComment(listingId, commentId)            { return this.request('DELETE', `/listings/${listingId}/comments/${commentId}`); },
+
+  _showBanScreen() {
+    if (document.getElementById('cb-ban-screen')) return;
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', '56'); svg.setAttribute('height', '56');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', '#ef4444'); svg.setAttribute('stroke-width', '1.6');
+    svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', '12'); circle.setAttribute('cy', '12'); circle.setAttribute('r', '10');
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', '4.93'); line.setAttribute('y1', '4.93');
+    line.setAttribute('x2', '19.07'); line.setAttribute('y2', '19.07');
+    svg.append(circle, line);
+
+    const title = document.createElement('h1');
+    title.className = 'cb-ban-title';
+    title.textContent = 'Hesabınız Askıya Alındı';
+
+    const msg = document.createElement('p');
+    msg.className = 'cb-ban-msg';
+    msg.textContent = 'Platformumuzun kullanım koşullarını ihlal ettiğiniz için hesabınız askıya alınmıştır.';
+
+    const sub = document.createElement('p');
+    sub.className = 'cb-ban-sub';
+    sub.textContent = 'Bu durumun hatalı olduğunu düşünüyorsanız üniversite yönetimine başvurun.';
+
+    const box = document.createElement('div');
+    box.className = 'cb-ban-box';
+    box.append(svg, title, msg, sub);
+
+    const el = document.createElement('div');
+    el.id = 'cb-ban-screen';
+    Object.assign(el.style, {
+      position: 'fixed', inset: '0', zIndex: '9999',
+      background: '#f8fafc', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+    });
+    el.appendChild(box);
+    document.body.appendChild(el);
+    document.body.style.overflow = 'hidden';
+  },
 };

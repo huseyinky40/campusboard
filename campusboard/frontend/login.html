@@ -313,6 +313,10 @@
           body: JSON.stringify({ email, password }),
         });
         const data = await res.json();
+        if (res.status === 403 && data.type === 'banned') {
+          showError('Hesabınız askıya alınmıştır. Yönetici ile iletişime geçin.');
+          return;
+        }
         if (res.status === 403 && data.type === 'unverified') {
           pendingEmail = email;
           unverifiedBanner.style.display = 'block';
