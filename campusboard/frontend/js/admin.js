@@ -41,8 +41,8 @@
   }
 
   // ── Confirm dialog ────────────────────────────────────────────────────────
-  const confirmOverlay = document.getElementById('confirm-overlay');
-  const confirmMsg     = document.getElementById('confirm-message');
+  const confirmOverlay = document.getElementById('admin-confirm-overlay');
+  const confirmMsg     = document.getElementById('admin-confirm-message');
   let   pendingResolve = null;
 
   function confirmDialog(msg) {
@@ -52,8 +52,8 @@
     return new Promise(res => { pendingResolve = res; });
   }
 
-  const cancelBtn = document.getElementById('confirm-cancel');
-  const okBtn     = document.getElementById('confirm-ok');
+  const cancelBtn = document.getElementById('admin-confirm-cancel');
+  const okBtn     = document.getElementById('admin-confirm-ok');
 
   if (cancelBtn) cancelBtn.onclick = () => {
     confirmOverlay?.classList.add('hidden');
